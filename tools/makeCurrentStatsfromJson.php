@@ -24,7 +24,7 @@ function modDate($x) {
 }
 
 function getBalance ($x) {
- 	$conn = new mysqli("localhost", "xdb_user", "M00n\$hot!@!", "xrp");
+ 	$conn = new mysqli("localhost", "xdb_user", "sqlPass", "xrp");
 	$sql = "select min(value) from (select wallets.value from wallets order by value desc limit $x) as subt;"; 
 	if ($conn->connect_error) {
    		die("ERROR: Unable to connect: " . $conn->connect_error);
@@ -39,7 +39,7 @@ function getBalance ($x) {
 
 function getNumberofAccounts ($a) {
 	$snap="xrp";
-	$conn = new mysqli("localhost", "xdb_user", "M00n\$hot!@!", $snap);
+	$conn = new mysqli("localhost", "xdb_user", "sqlPass", $snap);
 	$result = $conn->query("$a;");
 	$row = $result->fetch_assoc();
 	$walletcount = $row["count(*)"];
@@ -49,7 +49,7 @@ function getNumberofAccounts ($a) {
 
 function accountsandsumsinrange ($x,$y) {
 	$snap="xrp";
-	$conn = new mysqli("localhost", "xdb_user", "M00n\$hot!@!", $snap);
+	$conn = new mysqli("localhost", "xdb_user", "sqlPass", $snap);
 
  if ($conn->connect_error) {
    die("ERROR: Unable to connect: " . $conn->connect_error);
@@ -70,7 +70,7 @@ function accountsandsumsinrange ($x,$y) {
 }
 
 function setPercents ($a,$b,$c,$d,$e) {
-    $conn = new mysqli("localhost", "xdb_user", "M00n\$hot!@!", "richstats");
+    $conn = new mysqli("localhost", "xdb_user", "sqlPass", "richstats");
 
  if ($conn->connect_error) {
    die("ERROR: Unable to connect: " . $conn->connect_error);
@@ -84,7 +84,7 @@ function setPercents ($a,$b,$c,$d,$e) {
 }
 
 function setAccountStats ($a,$b,$c,$d,$e) {
-    $conn = new mysqli("localhost", "xdb_user", "M00n\$hot!@!", "richstats");
+    $conn = new mysqli("localhost", "xdb_user", "sqlPass", "richstats");
 
  if ($conn->connect_error) {
    die("ERROR: Unable to connect: " . $conn->connect_error);
@@ -96,7 +96,7 @@ function setAccountStats ($a,$b,$c,$d,$e) {
     $conn->close();
 }
 function baselineStats($ledgerIndex,$ledgerDate,$totalXRP,$walletXRP,$Escrow,$numAccounts) {
-	$conn = new mysqli("localhost", "xdb_user", "M00n\$hot!@!", "richstats");
+	$conn = new mysqli("localhost", "xdb_user", "sqlPass", "richstats");
  	if ($conn->connect_error) {
    	die("ERROR: Unable to connect: " . $conn->connect_error); }
 	#Check for index enrty
