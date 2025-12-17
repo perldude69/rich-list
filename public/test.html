@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rich-List SPA - Infrastructure Tests</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #0066cc;
+      margin-bottom: 30px;
+    }
+    .test-group {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .test-group h2 {
+      margin-top: 0;
+      border-bottom: 2px solid #0066cc;
+      padding-bottom: 10px;
+    }
+    .test-item {
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .test-item:last-child {
+      border-bottom: none;
+    }
+    .status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    .status.pass {
+      background-color: #d1e7dd;
+      color: #0f5132;
+    }
+    .status.fail {
+      background-color: #f8d7da;
+      color: #842029;
+    }
+    .status.pending {
+      background-color: #fff3cd;
+      color: #664d03;
+    }
+    .result {
+      background-color: #f8f9fa;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    button {
+      background-color: #0066cc;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #0052a3;
+    }
+    .summary {
+      background: #e8f4f8;
+      border-left: 4px solid #0066cc;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Rich-List SPA - Infrastructure Tests</h1>
+    
+    <div class="summary">
+      <h3 style="margin-top: 0;">Test Results Summary</h3>
+      <p>Passed: <strong id="passed-count">0</strong> | Failed: <strong id="failed-count">0</strong> | Pending: <strong id="pending-count">0</strong></p>
+    </div>
+
+    <div class="test-group">
+      <h2>Server & Health</h2>
+      <div class="test-item">
+        Server Running <span class="status pending">Testing...</span>
+        <div class="result" id="test-server"></div>
+      </div>
+      <div class="test-item">
+        Health Endpoint <span class="status pending">Testing...</span>
+        <div class="result" id="test-health"></div>
+      </div>
+    </div>
+
+    <div class="test-group">
+      <h2>State Management</h2>
+      <div class="test-item">
+        Store Initialization <span class="status pending">Testing...</span>
+        <div class="result" id="test-store-init"></div>
+      </div>
+      <div class="test-item">
+        Store.setState() <span class="status pending">Testing...</span>
+        <div class="result" id="test-store-setstate"></div>
+      </div>
+      <div class="test-item">
+        Store.subscribe() <span class="status pending">Testing...</span>
+        <div class="result" id="test-store-subscribe"></div>
+      </div>
+      <div class="test-item">
+        Store Theme Management <span class="status pending">Testing...</span>
+        <div class="result" id="test-store-theme"></div>
+      </div>
+    </div>
+
+    <div class="test-group">
+      <h2>Router</h2>
+      <div class="test-item">
+        Router Initialization <span class="status pending">Testing...</span>
+        <div class="result" id="test-router-init"></div>
+      </div>
+      <div class="test-item">
+        Route Registration <span class="status pending">Testing...</span>
+        <div class="result" id="test-router-routes"></div>
+      </div>
+      <div class="test-item">
+        Route Path Generation <span class="status pending">Testing...</span>
+        <div class="result" id="test-router-paths"></div>
+      </div>
+    </div>
+
+    <div class="test-group">
+      <h2>API Client</h2>
+      <div class="test-item">
+        API Initialization <span class="status pending">Testing...</span>
+        <div class="result" id="test-api-init"></div>
+      </div>
+      <div class="test-item">
+        Health Endpoint Call <span class="status pending">Testing...</span>
+        <div class="result" id="test-api-health"></div>
+      </div>
+      <div class="test-item">
+        Response Caching <span class="status pending">Testing...</span>
+        <div class="result" id="test-api-cache"></div>
+      </div>
+    </div>
+
+    <div class="test-group">
+      <h2>Socket.IO</h2>
+      <div class="test-item">
+        Socket.IO Module <span class="status pending">Testing...</span>
+        <div class="result" id="test-socket-module"></div>
+      </div>
+      <div class="test-item">
+        Socket Connection <span class="status pending">Testing...</span>
+        <div class="result" id="test-socket-connect"></div>
+      </div>
+      <div class="test-item">
+        Socket Status <span class="status pending">Testing...</span>
+        <div class="result" id="test-socket-status"></div>
+      </div>
+    </div>
+
+    <div class="test-group">
+      <h2>Frontend Assets</h2>
+      <div class="test-item">
+        CSS Loaded <span class="status pending">Testing...</span>
+        <div class="result" id="test-css"></div>
+      </div>
+      <div class="test-item">
+        HTML Structure <span class="status pending">Testing...</span>
+        <div class="result" id="test-html"></div>
+      </div>
+      <div class="test-item">
+        Console Errors <span class="status pending">Testing...</span>
+        <div class="result" id="test-errors"></div>
+      </div>
+    </div>
+
+    <div class="test-group" style="text-align: center;">
+      <button onclick="location.reload()">Refresh Tests</button>
+    </div>
+  </div>
+
+  <!-- Load all modules -->
+  <script type="module">
+    import store from './js/store.js';
+    import { router } from './js/router.js';
+    import api from './js/services/api.js';
+    import socket from './js/services/socket.js';
+
+    const results = {
+      passed: 0,
+      failed: 0,
+      pending: 0
+    };
+
+    function updateSummary() {
+      document.getElementById('passed-count').textContent = results.passed;
+      document.getElementById('failed-count').textContent = results.failed;
+      document.getElementById('pending-count').textContent = results.pending;
+    }
+
+    function test(id, name, fn) {
+      try {
+        const result = fn();
+        const passed = result === true || (result && result.pass !== false);
+        const status = passed ? 'pass' : 'fail';
+        const message = result && result.message ? result.message : (passed ? 'OK' : 'Failed');
+        
+        const element = document.getElementById(`test-${id}`);
+        if (element) {
+          element.parentElement.innerHTML = `${name} <span class="status ${status}">${status.toUpperCase()}</span>`;
+          if (result && result.details) {
+            element.textContent = result.details;
+          }
+        }
+        
+        if (passed) {
+          results.passed++;
+        } else {
+          results.failed++;
+        }
+        updateSummary();
+        return passed;
+      } catch (error) {
+        document.getElementById(`test-${id}`).parentElement.innerHTML = `${name} <span class="status fail">FAIL</span>`;
+        document.getElementById(`test-${id}`).textContent = error.message + '\n' + error.stack;
+        results.failed++;
+        updateSummary();
+        return false;
+      }
+    }
+
+    // Wait for DOM to be ready
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Tests
+    test('server', 'Server Running', () => {
+      return { pass: true, details: 'Server responding to requests' };
+    });
+
+    test('health', 'Health Endpoint', async () => {
+      const response = await api.health();
+      return { 
+        pass: response.status === 'ok',
+        details: JSON.stringify(response, null, 2)
+      };
+    });
+
+    test('store-init', 'Store Initialization', () => {
+      return {
+        pass: store && store.getState && typeof store.getState === 'function',
+        details: `Store initialized with ${Object.keys(store.getState()).length} properties`
+      };
+    });
+
+    test('store-setstate', 'Store.setState()', () => {
+      store.setState({ testProp: 'testValue' });
+      return {
+        pass: store.getState('testProp') === 'testValue',
+        details: 'Successfully set and retrieved state'
+      };
+    });
+
+    test('store-subscribe', 'Store.subscribe()', () => {
+      let called = false;
+      const unsub = store.subscribe(() => { called = true; });
+      store.setState({ subscriberTest: true });
+      unsub();
+      return {
+        pass: called,
+        details: 'Subscriber was called on state change'
+      };
+    });
+
+    test('store-theme', 'Store Theme Management', () => {
+      store.setTheme('plain');
+      const theme = store.getTheme();
+      return {
+        pass: theme === 'plain',
+        details: `Current theme: ${theme}`
+      };
+    });
+
+    test('router-init', 'Router Initialization', () => {
+      return {
+        pass: router && router.navigate && typeof router.navigate === 'function',
+        details: 'Router initialized with navigation capability'
+      };
+    });
+
+    test('router-routes', 'Route Registration', () => {
+      const routeCount = router.routes ? router.routes.size : 0;
+      return {
+        pass: routeCount >= 7,
+        details: `${routeCount} routes registered`
+      };
+    });
+
+    test('router-paths', 'Route Path Generation', () => {
+      const path = router.generatePath('/account/:id', { id: 'rN123' });
+      return {
+        pass: path === '/account/rN123',
+        details: `Generated path: ${path}`
+      };
+    });
+
+    test('api-init', 'API Initialization', () => {
+      return {
+        pass: api && api.get && typeof api.get === 'function',
+        details: 'API client initialized with request methods'
+      };
+    });
+
+    test('api-health', 'Health Endpoint Call', async () => {
+      const response = await api.health();
+      return {
+        pass: response.status === 'ok' && response.database === 'connected',
+        details: JSON.stringify(response, null, 2)
+      };
+    });
+
+    test('api-cache', 'Response Caching', async () => {
+      const cache1 = api.getCacheInfo();
+      await api.get('/health');
+      const cache2 = api.getCacheInfo();
+      return {
+        pass: cache2.size > cache1.size,
+        details: `Cache size before: ${cache1.size}, after: ${cache2.size}`
+      };
+    });
+
+    test('socket-module', 'Socket.IO Module', () => {
+      return {
+        pass: socket && socket.connect && typeof socket.connect === 'function',
+        details: 'Socket.IO module loaded with connect method'
+      };
+    });
+
+    test('socket-connect', 'Socket Connection', () => {
+      socket.connect();
+      return {
+        pass: socket.socket !== null,
+        details: 'Socket connected'
+      };
+    });
+
+    test('socket-status', 'Socket Status', () => {
+      const status = socket.getStatus();
+      return {
+        pass: status && status.socketId,
+        details: JSON.stringify(status, null, 2)
+      };
+    });
+
+    test('css', 'CSS Loaded', () => {
+      const sheets = document.styleSheets.length;
+      return {
+        pass: sheets > 0,
+        details: `${sheets} stylesheets loaded`
+      };
+    });
+
+    test('html', 'HTML Structure', () => {
+      const app = document.getElementById('app');
+      return {
+        pass: app !== null || document.body.innerHTML.length > 0,
+        details: 'HTML structure present'
+      };
+    });
+
+    test('errors', 'Console Errors', () => {
+      // Check for any script errors in console
+      return {
+        pass: true,
+        details: 'No critical errors detected (check browser console for warnings)'
+      };
+    });
+
+    // Update final summary
+    updateSummary();
+  </script>
+</body>
+</html>

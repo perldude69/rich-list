@@ -1,0 +1,305 @@
+================================================================================
+RICH-LIST SPA: DOCUMENTATION INDEX
+================================================================================
+
+Three comprehensive documents have been generated to document the architecture,
+operations, and scheduling mechanisms of the Rich-List SPA application.
+
+================================================================================
+GENERATED DOCUMENTATION
+================================================================================
+
+1. FINDINGS_SUMMARY.txt (THIS IS THE BEST STARTING POINT)
+   ═════════════════════════════════════════════════════
+   📄 Location: /opt/rich-list/FINDINGS_SUMMARY.txt
+   
+   Content:
+   --------
+   • What are "update-ledger" and "update-escrow"?
+   • Where are they implemented?
+   • How are they currently triggered?
+   • Server architecture overview
+   • Key findings and observations
+   • Database schema summary
+   • Execution flows
+   • Options for automatic scheduling
+   
+   Purpose: Executive summary with all key information on one page
+   Length: ~300 lines
+   Best For: Quick understanding of the entire system
+
+
+2. QUICK_REFERENCE.txt
+   ════════════════════
+   📄 Location: /opt/rich-list/QUICK_REFERENCE.txt
+   
+   Content:
+   --------
+   • Operations overview (update-ledger, update-escrow)
+   • Scheduling status (MANUAL ONLY - clearly highlighted)
+   • Real-time services (Oracle, Price Backfiller, WebSocket)
+   • Technology stack summary
+   • Key API endpoints reference
+   • Database tables quick reference
+   • Execution commands
+   • Important notes and caveats
+   
+   Purpose: Handy reference guide for lookups
+   Length: ~250 lines
+   Best For: Quick reference when working with the system
+
+
+3. ARCHITECTURE_AND_OPERATIONS.md (MOST COMPREHENSIVE)
+   ═══════════════════════════════════════════════════
+   📄 Location: /opt/rich-list/ARCHITECTURE_AND_OPERATIONS.md
+   
+   Content:
+   --------
+   • Complete definition of both operations
+   • Detailed scheduling mechanism analysis
+   • Full server architecture explanation
+   • Technology stack details
+   • Database schema with all fields
+   • API endpoint documentation
+   • File manifest
+   • Key findings and recommendations
+   • Suggestions for adding automatic scheduling
+   
+   Purpose: Comprehensive reference documentation
+   Length: ~440 lines
+   Best For: In-depth study and documentation purposes
+
+
+================================================================================
+HOW TO USE THIS DOCUMENTATION
+================================================================================
+
+For a Quick Answer:
+  1. Start with FINDINGS_SUMMARY.txt
+  2. Sections clearly labeled for quick scanning
+  3. Execution flows with step-by-step breakdown
+
+For Implementation Work:
+  1. Reference QUICK_REFERENCE.txt
+  2. Has execution commands and API endpoint list
+  3. Database table schema for queries
+
+For Architectural Review:
+  1. Read ARCHITECTURE_AND_OPERATIONS.md
+  2. Includes technology decisions and design patterns
+  3. Integration points and dependency analysis
+
+For Adding Features:
+  1. Check QUICK_REFERENCE.txt for technology stack
+  2. Review routes/api.js for endpoint patterns
+  3. Check services/ for service patterns
+
+For Scheduling Implementation:
+  1. See "To Add Automatic Scheduling" section in all docs
+  2. FINDINGS_SUMMARY.txt has 4 implementation options
+  3. Recommended: System cron (simplest) or node-cron (embedded)
+
+================================================================================
+KEY FINDINGS AT A GLANCE
+================================================================================
+
+WHAT:
+  Two batch operations for updating account and escrow data
+  - update-ledger: Fetches all account balances from XRPL
+  - update-escrow: Fetches all escrow objects from XRPL
+
+WHERE:
+  - update-ledger.js (375 lines, standalone Node script)
+  - update-escrow.js (135 lines, standalone Node script)
+  - Database: PostgreSQL 15 (Docker, port 5656)
+  - XRPL: Local Clio/rippled (ws://127.0.0.1:51233)
+
+HOW TRIGGERED:
+  ⚠️  MANUAL ONLY (via npm scripts)
+  ⚠️  NO automatic scheduling currently
+  ⚠️  No cron jobs, timers, or job queue
+  
+  Execution:
+  • npm run update-ledger  (5-30 minutes)
+  • npm run update-escrow  (1-5 minutes)
+
+ARCHITECTURE:
+  ✓ Node.js + Express.js 4.18.2
+  ✓ Socket.IO for real-time updates
+  ✓ PostgreSQL for storage
+  ✓ 13+ API endpoints
+  ✓ 3 auto-running background services:
+    - Oracle Subscriber (60-sec polling)
+    - Price Backfiller (startup backfill)
+    - WebSocket Broadcaster (10-sec updates)
+
+TO AUTOMATE:
+  Choose one of these options:
+  1. System cron (simplest) ← RECOMMENDED
+  2. node-cron (embedded)
+  3. Bull + Redis (production-grade)
+  4. Agenda (MongoDB-backed)
+
+================================================================================
+DOCUMENT REFERENCES
+================================================================================
+
+Source Files Analyzed:
+  • /opt/rich-list/server.js (383 lines)
+  • /opt/rich-list/update-ledger.js (375 lines)
+  • /opt/rich-list/update-escrow.js (135 lines)
+  • /opt/rich-list/routes/api.js (772 lines)
+  • /opt/rich-list/services/oracleSubscriber.mjs (200 lines)
+  • /opt/rich-list/services/priceBackfiller.mjs (232 lines)
+  • /opt/rich-list/services/xrplService.mjs (147 lines)
+  • /opt/rich-list/config/database.js (62 lines)
+  • /opt/rich-list/package.json (50 lines)
+  • Plus 7 frontend page components
+  • Plus supporting services and utilities
+
+Documentation Generated:
+  • FINDINGS_SUMMARY.txt (300 lines)
+  • QUICK_REFERENCE.txt (250 lines)
+  • ARCHITECTURE_AND_OPERATIONS.md (440 lines)
+  • DOCUMENTATION_INDEX.txt (this file)
+
+================================================================================
+QUICK NAVIGATION
+================================================================================
+
+Topic: What is update-ledger?
+  → FINDINGS_SUMMARY.txt: "WHAT ARE..." section
+  → ARCHITECTURE_AND_OPERATIONS.md: Section 1.1
+  → QUICK_REFERENCE.txt: "OPERATIONS OVERVIEW"
+
+Topic: How to run update-escrow?
+  → FINDINGS_SUMMARY.txt: "EXECUTION FLOW" section
+  → QUICK_REFERENCE.txt: "EXECUTION COMMANDS"
+  → ARCHITECTURE_AND_OPERATIONS.md: Section 5
+
+Topic: Server architecture?
+  → FINDINGS_SUMMARY.txt: "SERVER ARCHITECTURE" section
+  → ARCHITECTURE_AND_OPERATIONS.md: Section 3
+  → QUICK_REFERENCE.txt: "SERVER ARCHITECTURE SUMMARY"
+
+Topic: API endpoints?
+  → QUICK_REFERENCE.txt: "KEY API ENDPOINTS"
+  → ARCHITECTURE_AND_OPERATIONS.md: Section 3.3
+  → routes/api.js (source code)
+
+Topic: Database schema?
+  → QUICK_REFERENCE.txt: "DATABASE TABLES"
+  → ARCHITECTURE_AND_OPERATIONS.md: Section 3.4
+  → FINDINGS_SUMMARY.txt: "DATABASES & TABLES"
+
+Topic: Real-time services?
+  → FINDINGS_SUMMARY.txt: "SERVER ARCHITECTURE" section
+  → QUICK_REFERENCE.txt: "REAL-TIME SERVICES"
+  → ARCHITECTURE_AND_OPERATIONS.md: Section 2.4
+
+Topic: How to add scheduling?
+  → FINDINGS_SUMMARY.txt: "TO IMPLEMENT AUTOMATIC SCHEDULING"
+  → QUICK_REFERENCE.txt: "TO ADD AUTOMATIC SCHEDULING"
+  → ARCHITECTURE_AND_OPERATIONS.md: Section 4.4
+
+Topic: Technology stack?
+  → FINDINGS_SUMMARY.txt: "SERVER ARCHITECTURE AT A GLANCE"
+  → QUICK_REFERENCE.txt: "SERVER ARCHITECTURE SUMMARY"
+  → ARCHITECTURE_AND_OPERATIONS.md: Section 3.1
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+For Immediate Understanding:
+  1. Read FINDINGS_SUMMARY.txt (30 minutes)
+  2. Skim QUICK_REFERENCE.txt (10 minutes)
+  3. You'll have complete understanding of system
+
+For Deep Dive:
+  1. Read ARCHITECTURE_AND_OPERATIONS.md (45 minutes)
+  2. Review source files in this order:
+     - package.json (dependencies)
+     - server.js (entry point)
+     - routes/api.js (endpoints)
+     - update-ledger.js (operation)
+     - update-escrow.js (operation)
+
+For Implementation:
+  1. Check QUICK_REFERENCE.txt for commands
+  2. Review relevant source file
+  3. Refer to ARCHITECTURE_AND_OPERATIONS.md for details
+
+For Adding Scheduling:
+  1. Read section 4.4 in ARCHITECTURE_AND_OPERATIONS.md
+  2. Choose preferred option (cron/node-cron/bull/agenda)
+  3. Implement in server.js or scripts/
+
+================================================================================
+QUESTIONS & ANSWERS
+================================================================================
+
+Q: Where do I find the "update-ledger" code?
+A: /opt/rich-list/update-ledger.js (375 lines)
+   See FINDINGS_SUMMARY.txt for quick overview
+
+Q: How often should I run the updates?
+A: Currently: MANUAL ONLY (not automated)
+   Recommendation: Daily for ledger, weekly for escrow
+   See "TO IMPLEMENT AUTOMATIC SCHEDULING" sections
+
+Q: What does each operation do?
+A: See FINDINGS_SUMMARY.txt "WHAT ARE..." section
+   Or ARCHITECTURE_AND_OPERATIONS.md Section 1
+
+Q: Are there any background services?
+A: Yes, 3 auto-running services:
+   See QUICK_REFERENCE.txt "REAL-TIME SERVICES"
+
+Q: What's the database setup?
+A: PostgreSQL 15 in Docker on port 5656
+   See QUICK_REFERENCE.txt "DATABASE TABLES"
+   or ARCHITECTURE_AND_OPERATIONS.md Section 3.4
+
+Q: Can I run the scripts while the server is running?
+A: Yes, they're independent scripts
+   Can run in parallel without conflicts
+
+Q: How do I implement automatic scheduling?
+A: See "TO IMPLEMENT AUTOMATIC SCHEDULING" sections
+   Recommended: System cron (simplest option)
+
+Q: What's the server architecture?
+A: Node.js + Express + Socket.IO + PostgreSQL
+   See FINDINGS_SUMMARY.txt "SERVER ARCHITECTURE AT A GLANCE"
+
+================================================================================
+VERSION & METADATA
+================================================================================
+
+Documentation Generated: December 17, 2025
+Project: Rich-List SPA (XRPL Rich List Monitor)
+Location: /opt/rich-list/
+Framework: Express.js 4.18.2
+Database: PostgreSQL 15
+Runtime: Node.js >= 18.0.0
+
+Server Port: 9876
+Database Port: 5656 (Docker)
+XRPL Connection: ws://127.0.0.1:51233
+
+Main Operations:
+  • update-ledger.js (manual, fetch accounts)
+  • update-escrow.js (manual, fetch escrows)
+
+Real-time Services:
+  • OracleSubscriber (60-sec polling)
+  • PriceBackfiller (startup backfill)
+  • WebSocket Broadcaster (10-sec updates)
+
+API Endpoints: 13+
+Database Tables: 5
+Frontend Pages: 7
+Dependencies: 9 packages
+
+================================================================================

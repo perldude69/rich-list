@@ -1,0 +1,219 @@
+================================================================================
+RICH-LIST SPA: QUICK REFERENCE GUIDE
+================================================================================
+
+OPERATIONS OVERVIEW
+================================================================================
+
+1. UPDATE-LEDGER (npm run update-ledger)
+   File: /opt/rich-list/update-ledger.js (375 lines)
+   Purpose: Fetch all account balances from XRPL and update database
+   Tables Updated: accounts (truncated & reloaded), ledger_stats, stats
+   Resource: Resource-intensive - fetches ~40 million accounts
+   Frequency: MANUAL ONLY (no automatic scheduling)
+   Time Complexity: ~5-30 minutes depending on network
+   
+2. UPDATE-ESCROW (npm run update-escrow)
+   File: /opt/rich-list/update-escrow.js (135 lines)
+   Purpose: Fetch all escrow objects from XRPL and update database
+   Tables Updated: escrows (full table replacement)
+   Resource: Moderate - updates escrow records (thousands)
+   Frequency: MANUAL ONLY (no automatic scheduling)
+   Time Complexity: ~1-5 minutes
+   Alternative: /opt/rich-list/update-escrows.cjs (CommonJS version)
+
+================================================================================
+SCHEDULING STATUS: MANUAL ONLY
+================================================================================
+
+❌ NOT automatically scheduled
+❌ No cron jobs configured
+❌ No job queue library (bull, agenda, etc.)
+❌ No setInterval/setTimeout timers
+
+✓ Must be run manually via: npm run update-ledger OR npm run update-escrow
+✓ Can be scheduled externally with system cron or CI/CD
+
+================================================================================
+REAL-TIME SERVICES (AUTO-RUNNING IN SERVER)
+================================================================================
+
+1. ORACLE SUBSCRIBER SERVICE
+   File: /opt/rich-list/services/oracleSubscriber.mjs
+   Trigger: setInterval - every 60 seconds (60,000 ms)
+   Function: Polls XRPL Oracle account (rXUMMaPpZqPutoRszR29jtC8amWq3APkx)
+   Action: Detects price updates and inserts to database
+   Table: xrp_price
+   Status: ✓ ACTIVE (auto-running on server start)
+
+2. PRICE BACKFILLER SERVICE
+   File: /opt/rich-list/services/priceBackfiller.mjs
+   Trigger: ONE-TIME on server startup
+   Function: Backfills missing historical price data
+   Sampling: Every 10th ledger to minimize API calls
+   Batching: 50 ledgers per batch with 50ms delay
+   Status: ✓ RUNS ONCE (then disabled)
+
+3. WEBSOCKET BROADCASTER SERVICE
+   File: /opt/rich-list/server.js (line 161)
+   Trigger: setInterval - every 10 seconds (10,000 ms)
+   Function: Broadcasts real-time data to all connected clients
+   Events: stats:update, price:update, ledger:update, escrow:update
+   Status: ✓ ACTIVE (continuously broadcasts)
+
+================================================================================
+SERVER ARCHITECTURE SUMMARY
+================================================================================
+
+Technology Stack:
+- Framework: Express.js 4.18.2
+- Runtime: Node.js (requires >= 18.0.0)
+- Database: PostgreSQL 15 (in Docker, port 5656)
+- Real-time: Socket.IO 4.7.2 + WebSocket (ws 8.18.3)
+- Blockchain: xrpl 4.4.3 (official XRPL library)
+- Utilities: dotenv, cors, body-parser, axios
+
+Server Port: 9876
+Database Port: 5656 (Docker)
+XRPL Connection: ws://127.0.0.1:51233 (local Clio/rippled)
+
+Main Files:
+├── server.js ............................ Express server + Socket.IO
+├── routes/api.js ........................ 13+ API endpoints (772 lines)
+├── config/database.js .................. PostgreSQL pool configuration
+├── services/
+│   ├── xrplService.mjs ................. XRPL connection management
+│   ├── oracleSubscriber.mjs ............ Oracle price polling (1-min)
+│   └── priceBackfiller.mjs ............ Historical price backfill
+├── update-ledger.js .................... Manual ledger update
+├── update-escrow.js .................... Manual escrow update
+└── public/ ............................ Frontend SPA files
+
+================================================================================
+KEY API ENDPOINTS
+================================================================================
+
+Statistics:
+  GET /api/stats ........................ Latest ledger statistics
+  GET /api/accounts/trend .............. Historical account count
+
+Rich List:
+  GET /api/richlist ..................... Top wallets (paginated)
+  GET /api/search?account=rXXX ......... Wallet lookup with rank
+
+Escrows:
+  GET /api/escrows ..................... Escrow list (paginated)
+  GET /api/escrows/stats ............... Escrow statistics
+  GET /api/escrows/date-range ......... Escrows by date range
+  GET /api/escrows/total ............... Total escrowed XRP
+
+Price:
+  GET /api/price/latest ................ Current XRP price
+  GET /api/price/history ............... Historical price data
+  GET /api/graph ........................ Price chart data
+
+Analysis:
+  GET /api/ranking-search .............. Rank lookup
+  GET /api/stats/balance-ranges ........ Distribution by range
+  GET /api/stats/percentiles ........... Percentile distribution
+
+================================================================================
+DATABASE TABLES
+================================================================================
+
+accounts (truncated/reloaded by update-ledger)
+  - account_id (TEXT, PRIMARY KEY)
+  - balance (BIGINT in drops)
+  - sequence, flags, owner_count (INTEGER)
+  - created_at, updated_at (TIMESTAMP)
+
+escrows (full replace by update-escrow)
+  - id (SERIAL, PRIMARY KEY)
+  - account_id (TEXT)
+  - finish_after (DATE)
+  - amount (BIGINT in drops)
+  - created_at (TIMESTAMP)
+
+stats (updated by update-ledger)
+  - ind (INTEGER, PRIMARY KEY)
+  - ledgerindex, ledgerdate
+  - totalxrp, walletxrp, escrowxrp
+  - numaccounts, latest (flag)
+
+xrp_price (updated by Oracle polling)
+  - id (SERIAL, PRIMARY KEY)
+  - price (NUMERIC)
+  - time (TIMESTAMP)
+  - ledger, sequence (INTEGER)
+
+ledger_stats (metadata)
+  - ledger_index (PRIMARY KEY)
+  - ledger_hash, transaction_count
+  - reserve_base, reserve_inc, closed_at
+
+================================================================================
+EXECUTION COMMANDS
+================================================================================
+
+Start Server (with auto-running services):
+  npm start
+  npm run dev
+
+Manual Operations:
+  npm run update-ledger    # Fetch latest account data
+  npm run update-escrow    # Fetch latest escrow data
+
+Other npm Scripts:
+  npm test                 # Run Playwright tests
+  npm run docker:start     # Start PostgreSQL
+  npm run docker:stop      # Stop PostgreSQL
+  npm run docker:logs      # View DB logs
+  npm run db:backup        # Backup database
+  npm run db:restore       # Restore database
+
+================================================================================
+TO ADD AUTOMATIC SCHEDULING
+================================================================================
+
+Option 1: System Cron (Recommended for simplicity)
+  crontab -e
+  0 2 * * * cd /opt/rich-list && npm run update-ledger >> /var/log/ledger.log 2>&1
+  0 3 * * * cd /opt/rich-list && npm run update-escrow >> /var/log/escrow.log 2>&1
+
+Option 2: node-cron (Embedded, lightweight)
+  npm install node-cron
+
+Option 3: Bull + Redis (Production-grade job queue)
+  npm install bull redis bull-board
+
+Option 4: Agenda (MongoDB-backed scheduling)
+  npm install agenda
+
+================================================================================
+IMPORTANT NOTES
+================================================================================
+
+⚠️  update-ledger and update-escrow are STANDALONE SCRIPTS
+    - They do NOT integrate with the main server process
+    - They can be run independently
+    - They can be triggered while server is running or stopped
+
+✓  Real-time services (Oracle polling, WebSocket broadcast) run continuously
+   when server is active
+
+✓  All operations use PostgreSQL transactions for consistency
+   - ROLLBACK on error
+   - COMMIT on success
+
+⚠️  update-ledger does FULL TABLE REPLACEMENT
+    - Truncates accounts table
+    - Reloads all ~40M accounts
+    - No incremental updates
+
+⚠️  update-escrow does FULL TABLE SWAP
+    - Creates temp table
+    - Drops original table
+    - Renames temp table
+    - Atomic operation for consistency
+
+================================================================================

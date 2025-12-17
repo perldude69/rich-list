@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Rich-List SPA - XRPL Rich List Wallet Monitor"
+    />
+    <title>Rich-List.Info | XRPL Rich List Monitor</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/css/themes.css" />
+    <link rel="stylesheet" href="/css/wallet-badges.css" />
+
+    <!-- Icons -->
+    <link rel="icon" href="/images/xrpl.png" type="image/png" />
+
+    <!-- Scripts (loaded at the end for performance) -->
+  </head>
+  <body>
+    <!-- Main App Container -->
+    <div id="app">
+      <div class="app-loading">
+        <div class="spinner"></div>
+        <p>Loading Rich-List...</p>
+      </div>
+    </div>
+
+    <!-- Mobile Wallet Panel -->
+    <div id="mobile-wallet-panel" class="mobile-wallet-panel">
+      <div class="mobile-wallet-header">
+        <h3>Monitored Wallets</h3>
+        <button id="close-mobile-wallet-panel" class="close-panel-btn">
+          ×
+        </button>
+      </div>
+      <div id="mobile-wallet-content" class="mobile-wallet-content">
+        <!-- Wallet content will be populated here -->
+      </div>
+    </div>
+
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+    <!-- Application Scripts -->
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/js/router.js"></script>
+    <script type="module" src="/js/store.js"></script>
+    <script type="module" src="/js/services/api.js"></script>
+    <script type="module" src="/js/services/socket.js"></script>
+
+    <!-- Components (loaded after main) -->
+    <script type="module" src="/js/components/navbar.js"></script>
+    <script type="module" src="/js/components/layout.js"></script>
+    <script type="module" src="/js/modules/walletBadges.js"></script>
+
+    <!-- Page Components (Phase 4) -->
+    <script type="module" src="/js/pages/RichSearch.js"></script>
+    <script type="module" src="/js/pages/PriceChart.js"></script>
+    <script type="module" src="/js/pages/CurrentStats.js"></script>
+    <script type="module" src="/js/pages/Historic.js"></script>
+    <script type="module" src="/js/pages/EscrowCalendar.js"></script>
+  </body>
+</html>
