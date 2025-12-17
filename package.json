@@ -1,0 +1,51 @@
+{
+  "name": "rich-list",
+  "version": "1.0.0",
+  "description": "XRPL Rich List SPA - Single Page Application for monitoring top XRP wallets",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "stop": "pkill -f 'node server.js'",
+    "test": "npx playwright test",
+    "test:grep": "npx playwright test --grep",
+    "update-ledger": "node update-ledger.js",
+    "update-escrow": "node update-escrow.js",
+    "docker:start": "docker-compose up -d",
+    "docker:stop": "docker-compose down",
+    "docker:logs": "docker-compose logs -f postgres",
+    "db:backup": "bash scripts/backup-db.sh",
+    "db:restore": "bash scripts/restore-db.sh",
+    "price:backup": "node backup-xrp-price.js",
+    "price:restore": "node restore-xrp-price.js"
+  },
+  "keywords": [
+    "xrpl",
+    "ripple",
+    "cryptocurrency",
+    "wallet",
+    "blockchain"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "pg": "^8.10.0",
+    "socket.io": "^4.7.2",
+    "ws": "^8.18.3",
+    "xrpl": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "eslint": "^8.54.0",
+    "prettier": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

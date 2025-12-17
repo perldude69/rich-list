@@ -1,0 +1,246 @@
+/* Rich-List Theme Styles */
+/* 6 Available Themes for the SPA */
+
+/* Theme 1: Plain (Default Light) */
+body.theme-plain {
+  --color-primary: #0066cc;
+  --color-secondary: #0052a3;
+  --color-accent: #ff6b35;
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f8f9fa;
+  --color-text: #212529;
+  --color-text-secondary: #6c757d;
+  --color-border: #dee2e6;
+}
+
+/* Darker text for summary panels with light gray background */
+body.theme-plain div[style*="background-color: #f5f5f5"],
+body.theme-data-minimalist div[style*="background-color: #f5f5f5"],
+body.theme-ocean div[style*="background-color: #f5f5f5"],
+body.theme-forest div[style*="background-color: #f5f5f5"],
+body.theme-plain div[style*="background-color: #f9f9f9"],
+body.theme-data-minimalist div[style*="background-color: #f9f9f9"],
+body.theme-ocean div[style*="background-color: #f9f9f9"],
+body.theme-forest div[style*="background-color: #f9f9f9"] {
+  color: #333333 !important;
+}
+
+body.theme-crypto-classic div[style*="background-color: #f5f5f5"],
+body.theme-night-market div[style*="background-color: #f5f5f5"],
+body.theme-crypto-classic div[style*="background-color: #f9f9f9"],
+body.theme-night-market div[style*="background-color: #f9f9f9"] {
+  color: #ffffff !important;
+}
+
+/* Theme 2: Crypto Classic (Dark) */
+body.theme-crypto-classic {
+  --color-primary: #f7931a;
+  --color-secondary: #e68a14;
+  --color-accent: #ffffff;
+  --color-bg: #1a1a1a;
+  --color-bg-secondary: #2d2d2d;
+  --color-text: #ffffff;
+  --color-text-secondary: #b0b0b0;
+  --color-border: #404040;
+}
+
+body.theme-crypto-classic {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Theme 3: Data Minimalist (Monochrome) */
+body.theme-data-minimalist {
+  --color-primary: #000000;
+  --color-secondary: #333333;
+  --color-accent: #666666;
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f5f5f5;
+  --color-text: #000000;
+  --color-text-secondary: #666666;
+  --color-border: #cccccc;
+}
+
+body.theme-data-minimalist .navbar {
+  background-color: #000000;
+  border-bottom: 2px solid #333333;
+}
+
+body.theme-data-minimalist .card {
+  border: 2px solid #000000;
+}
+
+/* Theme 4: Night Market (Purple Dark) */
+body.theme-night-market {
+  --color-primary: #8b5cf6;
+  --color-secondary: #7c3aed;
+  --color-accent: #ec4899;
+  --color-bg: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-text: #f1f5f9;
+  --color-text-secondary: #cbd5e1;
+  --color-border: #334155;
+}
+
+body.theme-night-market {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Theme 5: Ocean (Blue Gradient) */
+body.theme-ocean {
+  --color-primary: #0369a1;
+  --color-secondary: #0284c7;
+  --color-accent: #06b6d4;
+  --color-bg: #f0f9ff;
+  --color-bg-secondary: #e0f2fe;
+  --color-text: #082f49;
+  --color-text-secondary: #0c4a6e;
+  --color-border: #bae6fd;
+}
+
+body.theme-ocean .navbar {
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+}
+
+/* Theme 6: Forest (Green Natural) */
+body.theme-forest {
+  --color-primary: #15803d;
+  --color-secondary: #166534;
+  --color-accent: #4ade80;
+  --color-bg: #f0fdf4;
+  --color-bg-secondary: #e7f5e4;
+  --color-text: #052e16;
+  --color-text-secondary: #166534;
+  --color-border: #bbf7d0;
+}
+
+body.theme-forest .navbar {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+}
+
+/* Dark mode preference */
+@media (prefers-color-scheme: dark) {
+  body.theme-plain {
+    --color-primary: #3a9dff;
+    --color-secondary: #2a7dd4;
+    --color-bg: #1e1e1e;
+    --color-bg-secondary: #2d2d2d;
+    --color-text: #e8e8e8;
+    --color-text-secondary: #a8a8a8;
+    --color-border: #404040;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  :root {
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .btn {
+    border-width: 2px;
+  }
+
+  .card {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Theme-specific utilities */
+.theme-toggle {
+  position: fixed;
+  bottom: var(--spacing-lg);
+  right: var(--spacing-lg);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  z-index: 1000;
+  transition: var(--transition-base);
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-lg);
+}
+
+.theme-menu {
+  position: fixed;
+  bottom: 70px;
+  right: var(--spacing-lg);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  min-width: 200px;
+  display: none;
+}
+
+.theme-menu.active {
+  display: block;
+}
+
+.theme-menu-item {
+  padding: var(--spacing-md) var(--spacing-lg);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+  transition: var(--transition-base);
+  font-size: 14px;
+}
+
+.theme-menu-item:last-child {
+  border-bottom: none;
+}
+
+.theme-menu-item:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.theme-menu-item.active {
+  background-color: var(--color-primary);
+  color: white;
+  font-weight: 600;
+}
+
+/* Color contrast validation for accessibility */
+body.theme-plain {
+  color-scheme: light;
+}
+
+body.theme-crypto-classic,
+body.theme-night-market {
+  color-scheme: dark;
+}
+
+body.theme-data-minimalist {
+  color-scheme: light;
+}
+
+body.theme-ocean {
+  color-scheme: light;
+}
+
+body.theme-forest {
+  color-scheme: light;
+}
