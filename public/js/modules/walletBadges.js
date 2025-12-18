@@ -1164,7 +1164,8 @@ class WalletBadgesModule {
     document
       .getElementById("clear-data-confirm")
       .addEventListener("click", async () => {
-        await this.clearAllUserData();
+        const instance = getWalletBadgesInstance();
+        await instance.clearAllUserData();
         modal.remove();
       });
 
@@ -1177,9 +1178,63 @@ class WalletBadgesModule {
     modal.addEventListener("click", (e) => {
       if (e.target === modal) modal.remove();
     });
+   }
+
+  async clearAllUserData() {
+    try {
+      // Show loading state
+      const confirmBtn = document.getElementById('clear-data-confirm');
+      const originalText = confirmBtn.textContent;
+      confirmBtn.textContent = 'Clearing...';
+      confirmBtn.disabled = true;
+
+      // Clear all wallets (async operation - this removes monitored wallets)
+      await walletService.clearAllWallets();
+
+      // Clear alerts and history (sync operations)
+      walletService.clearAllAlerts();
+      walletService.clearAlertHistory();
+
+      // Reset theme to default
+      localStorage.removeItem('richlist-theme');
+      document.body.className = 'theme-plain';
+      store.setState({ theme: 'plain' });
+
+      // Clear saved search queries from localStorage - safer approach
+      const keysToRemove = [];
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key) && (key.includes('search') || key.includes('query'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // Success feedback with delay to show completion
+      confirmBtn.textContent = '✅ Cleared!';
+      setTimeout(() => {
+        alert('All user data has been cleared successfully!');
+        window.location.reload();
+      }, 500);
+
+    } catch (error) {
+      console.error('Error clearing user data:', error);
+
+      // Reset button state on error
+      const confirmBtn = document.getElementById('clear-data-confirm');
+      if (confirmBtn) {
+        confirmBtn.textContent = 'Clear All Data';
+        confirmBtn.disabled = false;
+      }
+
+      // Show error in modal
+      const errorDiv = document.getElementById('clear-data-error');
+      if (errorDiv) {
+        errorDiv.innerHTML = `<div style="color: #dc3545; margin-top: 10px; font-weight: bold;">❌ Error: ${error.message}</div>`;
+      }
+    }
   }
 
-  openGDPRModal() {
+   openGDPRModal() {
     this.closeTooltip();
 
     const modal = document.createElement("div");
