@@ -16,3 +16,8 @@ backups/
 *.swo
 *~
 .cache/
+
+# DB content ignores
+*.dump
+*.backup
+data/
