@@ -21,3 +21,4 @@ backups/
 *.dump
 *.backup
 data/
+*.csv
