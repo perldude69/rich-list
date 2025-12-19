@@ -15,7 +15,7 @@ import OracleSubscriber from "./services/oracleSubscriber.mjs";
 import PriceBackfiller from "./services/priceBackfiller.mjs";
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: ".env.dev" });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -158,7 +158,7 @@ async function broadcastUpdates() {
 }
 
 // Start broadcasting updates every 10 seconds
-setInterval(broadcastUpdates, 10000);
+const broadcastInterval = setInterval(broadcastUpdates, 10000);
 
 // Socket.IO connection handler
 io.on("connection", (socket) => {
@@ -368,6 +368,8 @@ Type: npm start to restart
 // Handle graceful shutdown
 process.on("SIGTERM", () => {
   console.log("SIGTERM received, shutting down gracefully...");
+  // Clear the broadcast interval to stop background operations
+  clearInterval(broadcastInterval);
   httpServer.close(() => {
     db.pool.end(() => {
       console.log("Server and database connections closed");

@@ -1,23 +1,21 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
-    container_name: rich-list-postgres
+    container_name: rich-list-postgres_dev
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: richlist_postgres_2025
-      POSTGRES_DB: xrp_list_db
+      POSTGRES_DB: xrp_list_db_dev
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "5656:5432"
+      - "5657:5432"
     volumes:
-      - /opt/rich-list/postgres-data:/var/lib/postgresql/data
-      - /opt/rich-list/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - /opt/devenv/postgres-data:/var/lib/postgresql/data
+      - /opt/devenv/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - rich-list-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d xrp_list_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d xrp_list_db_dev"]
       interval: 10s
       timeout: 5s
       retries: 5

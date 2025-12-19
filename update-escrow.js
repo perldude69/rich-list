@@ -68,6 +68,9 @@ async function insertEscrowsToDatabase() {
     await client.query(
       "CREATE TABLE escrows_temp (LIKE escrows INCLUDING ALL)",
     );
+    // Drop and recreate finish_after as DATE type for date string compatibility
+    await client.query("ALTER TABLE escrows_temp DROP COLUMN finish_after");
+    await client.query("ALTER TABLE escrows_temp ADD COLUMN finish_after DATE");
     // Recreate the sequence since CASCADE dropped it
     await client.query("CREATE SEQUENCE IF NOT EXISTS escrows_simple_id_seq");
     // Ensure the sequence is set for the temp table
@@ -94,9 +97,9 @@ async function insertEscrowsToDatabase() {
 
       await client.query(
         `INSERT INTO escrows_temp
-                 (id, account_id, finish_after, amount, created_at)
-                 VALUES (DEFAULT, $1, $2, $3, CURRENT_TIMESTAMP)`,
-        [escrow.Account, finishDate, amountDrops],
+                  (id, account_id, destination, finish_after, amount, created_at)
+                  VALUES (DEFAULT, $1, $2, $3, $4, CURRENT_TIMESTAMP)`,
+        [escrow.Account, escrow.Destination, finishDate, amountDrops],
       );
       insertCount++;
     }

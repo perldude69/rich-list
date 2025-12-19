@@ -132,14 +132,14 @@ class CurrentStats {
               <div class="card">
                 <div class="card-body">
                   <h3>Reserve Base</h3>
-                  <p style="font-size: 1.5rem; font-weight: bold;">20 XRP</p>
+                  <p style="font-size: 1.5rem; font-weight: bold;">1 XRP</p>
                   <p class="text-muted text-small">Network minimum</p>
                 </div>
               </div>
               <div class="card">
                 <div class="card-body">
                   <h3>Reserve Increment</h3>
-                  <p style="font-size: 1.5rem; font-weight: bold;">5 XRP</p>
+                  <p style="font-size: 1.5rem; font-weight: bold;">0.2 XRP</p>
                   <p class="text-muted text-small">Per object</p>
                 </div>
               </div>
@@ -178,15 +178,15 @@ class CurrentStats {
                 <table class="table">
                   <tbody>
                     <tr>
-                      <td><strong>Total XRP in Circulation</strong></td>
+                      <td><strong>Total XRP Remaining</strong></td>
                       <td id="total-xrp-text" style="text-align: right;">0 XRP</td>
                     </tr>
                     <tr>
-                      <td><strong>XRP in Wallets</strong></td>
+                      <td><strong>XRP in Circulation</strong></td>
                       <td id="wallet-xrp-text" style="text-align: right;">0 XRP</td>
                     </tr>
                     <tr>
-                      <td><strong>XRP in Escrow</strong></td>
+                      <td><strong>XRP locked in Escrow</strong></td>
                       <td id="escrow-xrp-text" style="text-align: right;">0 XRP</td>
                     </tr>
                     <tr>
