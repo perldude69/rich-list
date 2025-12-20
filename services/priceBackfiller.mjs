@@ -1,7 +1,7 @@
-// Price Backfiller Service
 // Backfills missing XRP prices from the oracle account in historical ledger data
 
 import { insertPrice, getPriceHistory } from "../models/priceModel.mjs";
+import db from "../config/database.js";
 
 class PriceBackfiller {
   constructor(xrplService) {
@@ -9,31 +9,6 @@ class PriceBackfiller {
     this.backfillInProgress = false;
     this.backfillStartTime = null;
     this.pricesBackfilled = 0;
-  }
-
-  async start() {
-    try {
-      if (!this.xrplService.isConnected) {
-        console.log(
-          "⏳ Waiting for XRPL connection before starting backfill...",
-        );
-        for (let i = 0; i < 30; i++) {
-          if (this.xrplService.isConnected) {
-            break;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-      }
-
-      if (!this.xrplService.isConnected) {
-        throw new Error("XRPL service not connected");
-      }
-
-      await this.backfillMissingPrices();
-      console.log("✅ Price backfill completed");
-    } catch (error) {
-      console.error("❌ Error during price backfill:", error.message);
-    }
   }
 
   async backfillMissingPrices() {
@@ -49,65 +24,32 @@ class PriceBackfiller {
     try {
       console.log("📊 Starting price backfill process...");
 
-      // Get current ledger index and available ledger range
-      const serverInfo = await this.xrplService.request({
-        command: "server_info",
-      });
+      // Get gaps from price_gaps table
+      const gapsResult = await db.query(
+        "SELECT * FROM price_gaps ORDER BY start_time",
+      );
+      const gaps = gapsResult.rows;
+      console.log(`   Found ${gaps.length} gaps to solve`);
 
-      const currentLedger = serverInfo.result.info.validated_ledger.seq;
-
-      // Parse complete_ledgers to get oldest available
-      let oldestLedger = 1;
-      if (serverInfo.result.info.complete_ledgers) {
-        const ledgerRange = serverInfo.result.info.complete_ledgers;
-        const parts = ledgerRange.split("-");
-        if (parts.length === 2) {
-          oldestLedger = parseInt(parts[0]);
-        }
+      if (gaps.length === 0) {
+        console.log("   No gaps to process, exiting backfill");
+        return;
       }
 
-      console.log(`   Current ledger: ${currentLedger}`);
-      console.log(`   Oldest available ledger: ${oldestLedger}`);
+      for (let i = 0; i < gaps.length; i++) {
+        const gap = gaps[i];
+        if (this.cancelled) {
+          console.log("Backfill cancelled");
+          break;
+        }
 
-      // Get existing prices to find gaps
-      const existingPrices = await this.getPriceDataFromDB();
-      console.log(
-        `   Found ${existingPrices.length} existing prices in database`,
-      );
-
-      if (existingPrices.length === 0) {
         console.log(
-          "   No existing prices, starting from recent available ledgers...",
+          `   Processing gap ${i + 1}/${gaps.length} (ID: ${gap.id}): ${gap.start_time} to ${gap.end_time}`,
         );
-        // Backfill recent ledgers that are available on server
-        const startLedger = Math.max(oldestLedger, currentLedger - 1000);
-        await this.backfillLedgerRange(startLedger, currentLedger);
-      } else {
-        // Find gaps and backfill only those within available ledger range
-        const gaps = this.identifyGaps(existingPrices, currentLedger);
-        console.log(`   Identified ${gaps.length} gaps in price data`);
-
-        for (const gap of gaps) {
-          // Only backfill gaps that are within available ledger range on server
-          const backfillStart = Math.max(gap.start, oldestLedger);
-          const backfillEnd = Math.min(gap.end, currentLedger);
-
-          if (backfillStart <= backfillEnd) {
-            console.log(
-              `   Backfilling available gap: ${backfillStart} - ${backfillEnd}`,
-            );
-            await this.backfillLedgerRange(backfillStart, backfillEnd);
-          } else {
-            console.log(
-              `   Skipping gap ${gap.start} - ${gap.end} (outside available ledger range)`,
-            );
-          }
-        }
+        await this.solveGap(gap);
       }
 
-      console.log(
-        `✅ Backfill completed: ${this.pricesBackfilled} prices added`,
-      );
+      console.log(`Backfill completed: ${this.pricesBackfilled} prices added`);
     } catch (error) {
       console.error("Error during backfill:", error.message);
     } finally {
@@ -115,104 +57,169 @@ class PriceBackfiller {
     }
   }
 
-  identifyGaps(existingPrices, currentLedger) {
-    const gaps = [];
-    const SAMPLE_SIZE = 100; // Check every 100 ledgers
+  async solveGap(gap) {
+    // Find price before gap
+    const beforeResult = await db.query(
+      "SELECT ledger FROM xrp_price WHERE time < $1 ORDER BY time DESC LIMIT 1",
+      [gap.start_time],
+    );
+    if (beforeResult.rows.length === 0) {
+      console.log(`   No price before gap ${gap.id}, skipping`);
+      return;
+    }
+    const beforeLedger = parseInt(beforeResult.rows[0].ledger);
 
-    // Sort by ledger index
-    existingPrices.sort((a, b) => (a.ledger || 0) - (b.ledger || 0));
+    // Find price after gap
+    const afterResult = await db.query(
+      "SELECT ledger FROM xrp_price WHERE time > $1 ORDER BY time ASC LIMIT 1",
+      [gap.end_time],
+    );
+    if (afterResult.rows.length === 0) {
+      console.log(`   No price after gap ${gap.id}, skipping`);
+      return;
+    }
+    const afterLedger = parseInt(afterResult.rows[0].ledger);
 
-    let lastLedger = 0;
+    // Estimate ledger range
+    let startLedger = beforeLedger + 1;
+    let endLedger = afterLedger - 1;
 
-    for (const price of existingPrices) {
-      const priceLedger = price.ledger || 0;
+    if (startLedger > endLedger) {
+      console.log(
+        `   Invalid range for gap ${gap.id}: ${startLedger} - ${endLedger}, deleting invalid gap`,
+      );
+      await db.query("DELETE FROM price_gaps WHERE id = $1", [gap.id]);
+      return;
+    }
 
-      // Check for gap
-      if (priceLedger - lastLedger > SAMPLE_SIZE) {
-        gaps.push({
-          start: lastLedger + 1,
-          end: priceLedger - 1,
-        });
+    // Skip gaps that are too large (more than ~10 minutes of missing prices)
+    const maxGapSize = 200; // ~18 ledgers per price, 200 covers ~11 prices
+    if (endLedger - startLedger > maxGapSize) {
+      console.log(
+        `   Gap ${gap.id} too large (${endLedger - startLedger} ledgers), deleting`,
+      );
+      await db.query("DELETE FROM price_gaps WHERE id = $1", [gap.id]);
+      return;
+    }
+
+    // Skip gaps that require querying very old ledgers (before ~2024)
+    const minLedger = 95000000; // Approximate ledger around 2024
+    if (startLedger < minLedger) {
+      console.log(
+        `   Gap ${gap.id} requires old ledger ${startLedger}, deleting as unfillable`,
+      );
+      await db.query("DELETE FROM price_gaps WHERE id = $1", [gap.id]);
+      return;
+    }
+
+    // Split into chunks to avoid large range queries
+    const maxRange = 17;
+    const chunks = [];
+    for (let s = startLedger; s <= endLedger; s += maxRange) {
+      const e = Math.min(s + maxRange - 1, endLedger);
+      chunks.push({ start: s, end: e });
+    }
+
+    console.log(`   Split into ${chunks.length} chunks for gap ${gap.id}`);
+
+    let totalInserted = 0;
+    let allOutOfRange = true;
+    for (const chunk of chunks) {
+      const result = await this.backfillLedgerRange(chunk.start, chunk.end);
+      if (result === "outOfRange") {
+        // skip
+      } else {
+        allOutOfRange = false;
+        totalInserted += result;
       }
-
-      lastLedger = priceLedger;
     }
 
-    // Check if there's a gap between last known price and current ledger
-    if (currentLedger - lastLedger > SAMPLE_SIZE) {
-      gaps.push({
-        start: lastLedger + 1,
-        end: currentLedger,
-      });
+    if (totalInserted > 0) {
+      // Delete the gap since it was filled
+      await db.query("DELETE FROM price_gaps WHERE id = $1", [gap.id]);
+      console.log(`   ✅ Solved gap ${gap.id}, deleted from table`);
+    } else if (allOutOfRange) {
+      // Delete the gap since it's unfillable (out of server range)
+      await db.query("DELETE FROM price_gaps WHERE id = $1", [gap.id]);
+      console.log(`   🗑️ Deleted unfillable gap ${gap.id} (out of range)`);
+    } else {
+      console.log(`   ❌ Could not solve gap ${gap.id}`);
     }
-
-    return gaps;
   }
 
   async backfillLedgerRange(startLedger, endLedger) {
-    const BATCH_SIZE = 50; // Check 50 ledgers at a time
-    const SAMPLE_RATE = 10; // Sample every 10th ledger to reduce API calls
+    console.log(
+      `   Querying Oracle TX for ledger range: ${startLedger} - ${endLedger}`,
+    );
 
-    console.log(`   Backfilling ledger range: ${startLedger} - ${endLedger}`);
+    let insertedCount = 0;
+    try {
+      const response = await this.xrplService.request({
+        command: "account_tx",
+        account: "rXUMMaPpZqPutoRszR29jtC8amWq3APkx",
+        ledger_index_min: startLedger,
+        ledger_index_max: endLedger,
+        limit: 1000,
+        forward: false,
+      });
 
-    for (let ledger = startLedger; ledger <= endLedger; ledger += SAMPLE_RATE) {
-      try {
-        // Extract price from ledger
-        const priceData = await this.xrplService.extractPriceFromLedger(ledger);
+      if (response.result && response.result.transactions) {
+        const transactions = response.result.transactions;
+        console.log(`   Found ${transactions.length} TX in range`);
 
-        if (priceData && priceData.price) {
-          // Insert into database
+        for (const txWrapper of transactions) {
           try {
-            await insertPrice(
-              priceData.price,
-              priceData.timestamp,
-              priceData.ledgerIndex,
-              null,
-            );
-            this.pricesBackfilled++;
-          } catch (dbError) {
-            // ON CONFLICT will silently skip duplicates, so ignore
-            if (!dbError.message.includes("duplicate")) {
-              console.error(
-                `Error inserting price for ledger ${ledger}:`,
-                dbError.message,
-              );
+            const tx = txWrapper.tx_json || txWrapper.tx || txWrapper;
+            if (
+              tx.TransactionType === "TrustSet" &&
+              tx.Account === "rXUMMaPpZqPutoRszR29jtC8amWq3APkx"
+            ) {
+              if (tx.LimitAmount && tx.LimitAmount.currency === "USD") {
+                const price = parseFloat(tx.LimitAmount.value);
+                if (!isNaN(price) && price > 0) {
+                  const inserted = await insertPrice(
+                    price,
+                    tx.date
+                      ? this.xrplService.rippleToUnixTime(tx.date)
+                      : Date.now(),
+                    tx.ledger_index || tx.inLedger,
+                    tx.Sequence,
+                  );
+                  if (inserted) {
+                    this.pricesBackfilled++;
+                    insertedCount++;
+                  }
+                }
+              }
             }
+          } catch (txError) {
+            console.warn("Warning: Could not process TX:", txError.message);
           }
         }
-
-        // Progress indicator
-        if ((ledger - startLedger) % (BATCH_SIZE * SAMPLE_RATE) === 0) {
-          const progress = Math.floor(
-            ((ledger - startLedger) / (endLedger - startLedger)) * 100,
-          );
-          console.log(
-            `      Progress: ${progress}% (${this.pricesBackfilled} prices added)`,
-          );
-        }
-      } catch (error) {
-        console.warn(
-          `   Warning: Could not extract price from ledger ${ledger}:`,
-          error.message,
-        );
+      } else {
+        console.log("No TX found in range");
       }
-
-      // Small delay to avoid overwhelming the Clio server
-      await new Promise((resolve) => setTimeout(resolve, 50));
+    } catch (error) {
+      console.error("Error querying account_tx:", error.message);
+      // If out of range, return special value
+      if (error.message.includes("ledgerSeqMinOutOfRange")) {
+        return "outOfRange";
+      }
     }
+    return insertedCount;
   }
 
   async getPriceDataFromDB() {
     try {
-      // Get all prices from database (limit to recent to avoid timeout)
+      // Fetch prices from Jan 1, 2022, onwards for comprehensive gap detection
       const result = await getPriceHistory(
-        "1970-01-01",
+        "2022-01-01T00:00:00.000Z",
         new Date().toISOString(),
-        10000,
+        100000,
       );
       return result;
     } catch (error) {
-      console.error("Error fetching prices from database:", error.message);
+      console.error("Error fetching prices for gap tracking:", error.message);
       return [];
     }
   }

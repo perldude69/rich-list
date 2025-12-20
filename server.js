@@ -13,6 +13,7 @@ import { setupRoutes } from "./routes/api.js";
 import XRPLService from "./services/xrplService.mjs";
 import OracleSubscriber from "./services/oracleSubscriber.mjs";
 import PriceBackfiller from "./services/priceBackfiller.mjs";
+import GapTracker from "./services/gapTracker.mjs";
 
 // Load environment variables
 dotenv.config({ path: ".env.dev" });
@@ -327,10 +328,14 @@ const startServer = async () => {
     // Initialize Price Backfiller (runs in background)
     console.log("🔧 Initializing Price Backfiller...");
     const priceBackfiller = new PriceBackfiller(xrplService);
-    // Start backfill asynchronously so it doesn't delay server startup
-    // priceBackfiller.start().catch((error) => {
-    //   console.error("Error in price backfiller:", error.message);
-    // });
+    // Make backfiller globally available for API routes
+    global.priceBackfiller = priceBackfiller;
+
+    // Initialize Gap Tracker
+    console.log("🔧 Initializing Gap Tracker...");
+    const gapTracker = new GapTracker();
+    // Make gap tracker globally available for API routes
+    global.gapTracker = gapTracker;
 
     httpServer.listen(PORT, () => {
       console.log(`
@@ -358,6 +363,7 @@ Type: npm start to restart
       xrplService,
       oracleSubscriber,
       priceBackfiller,
+      gapTracker,
     };
   } catch (error) {
     console.error("Failed to start server:", error);

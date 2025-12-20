@@ -1,0 +1,45 @@
+# Backfill API Endpoints - Curl Commands
+# Server assumed to be running on localhost:8585
+
+# 1. Start Backfill
+# Initiates gap backfilling process
+curl -X POST http://localhost:8585/api/backfill/start \
+  -H "Content-Type: application/json"
+
+# Expected response: {"status": "started", "message": "Gap backfilling initiated"}
+
+# 2. Query Remaining Gaps
+# Returns count of remaining gaps to be filled
+curl http://localhost:8585/api/backfill/gaps
+
+# Expected response: {"remainingGaps": 9728}
+
+# 3. Stop Backfill
+# Requests cancellation of active backfill process
+curl -X POST http://localhost:8585/api/backfill/stop \
+  -H "Content-Type: application/json"
+
+# Expected response: {"status": "stop_requested", "message": "Backfill stop requested"}
+
+# 4. Query Backfill Status
+# Returns current backfill run state and progress
+curl http://localhost:8585/api/backfill/status
+
+# Expected response: {
+#   "backfillInProgress": true,
+#   "pricesBackfilled": 150,
+#   "backfillDuration": "45s"
+# }
+
+# 5. Trigger Gap Identification Scan
+# Initiates gap detection and populates price_gaps table
+curl -X POST http://localhost:8585/api/gaps/scan \
+  -H "Content-Type: application/json"
+
+# Expected response: {"status": "scan_started", "message": "Gap identification scan initiated"}
+
+# Additional Notes:
+# - Start and stop operations return immediately
+# - Status endpoint can be polled to monitor progress
+# - Gaps endpoint provides quick count without full data
+# - All endpoints return JSON responses with success/error status

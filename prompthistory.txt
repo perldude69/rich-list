@@ -1,0 +1,59 @@
+Please review the code in this folder. There was a syntax error that wasn't found. It took hours to locate. Now the code works, but has gotten slow as hell. Check for entries made while troubleshooting. Commented out code, double entries, etc.
+
+aps.js was the main focus.
+
+OK. First, lets focus on historical data. Please plan to remove the monitoring of current price activity.
+
+We changed to external XRPL servers. Is this still the case?
+
+TxnSignature": "3045022100BBA4DEEC28C9F8279C56902B5BFA91C2C2D163EBFC705FFF56DA21B30344447102203DD6F807125E9B6326CB7DFD679FD4CC6F0E486AE04DEE2397A66B7BD7EC5056", "ctid": "C604F50B00000000", "date": 819490700, "ledger_index": 100988171 }, "validated": true } Database connection established Processed 200 transactions, 200 prices added ✅ Backfill completed: 200 prices added ✅ Price backfill completed
+
+OK. Please implement this, take care not to cause syntax errors please.
+
+No insert statements shown.
+
+OK. Please make and run tests in a seperate script that doesn't modify the app. Once we have agreed on the logic, with positive feedback from me, we will move forward or not. Please don't change the app without positive feedback from me. Does this make sense? If so, I will switch to build mode.
+
+We should be connecting to xrpcluster.com and s2.ripple.com. The clio server has a short history. These two servers external have full history, but will ban us if we overload them.
+
+32570 is the first ledger.
+
+Look at this one first.
+
+fuck you.
+
+OK. Let's calm the fuck down. You are just an asshole. Look at the current fucking app and the functionality we were working on. Price backfill and elimination of gaps.
+
+Gap tracker is needed. Update the fucking routes. Engance the fucking backfiller. This part worked great. Check the fucking database for price_gaps. I'll fucking test.
+
+do it
+
+OK. This is working well. Can you document in AGENTS.md the XRPL json structure of the Oracle account that finds the price.
+
+OK. Please implement.
+
+Still not connecting. Phase 0: Database Setup Complete ✓ Phase 1: XRPL Services Initialized ✓ Phase 2: Oracle Subscriber Running ✓ Phase 3: WebSocket Broadcasting (active) Type: npm start to restart npm run docker:start to start PostgreSQL ⏳ Waiting for XRPL connection before starting backfill... ❌ Error during price backfill: XRPL service not connected 🔗 Connecting to XRPL server: wss://xrplcluster.com DisconnectedError: websocket was closed, Connection (public) IP limit reached 💩 { "data": undefined } ✅ Connected to XRPL server: wss://xrplcluster.com Request failed: {"command":"account_tx","account":"rXUMMaPpZqPutoRszR29jtC8amWq3APkx","limit":5,"api_version":2}
+
+Please add a delay between queries to respect the limits on the external servers.
+
+We didn't fucking commit to git because I said write fucking script, not to change the fucking app. It was working before. Now it is trying to read shit that doesn't exist.
+
+OK. Please make and run tests in a seperate script that doesn't modify the app. Once we have agreed on the logic, with positive feedback from me, we will move forward or not.
+
+OK.
+
+do it
+
+What the fuck? Change it back. Look through this prompt fucking history to the point where I said write a script to check for malformed ledgers. It was working before that.
+
+OK. Please implement.
+
+Looks fucked.
+
+OK. This is working well. Can you document in AGENTS.md the XRPL json structure of the Oracle account that finds the price.
+
+OK. Please implement.
+
+jim@clio1:/opt/devenv$ npm start > rich-list@2.0.1 start > node server.js file:///opt/devenv/services/priceBackfiller.mjs:220 export default PriceBackfiller; ^^^^^^^ SyntaxError: Unexpected token 'default' at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:152:18) at ModuleLoader.moduleProvider (node:internal/modules/esm/loader:298:14) at async link (node:internal/modules/esm/translators:152:18)
+
+Please write our chat history to a file called 'prompthistory.txt'. Just the prompts I entered.
