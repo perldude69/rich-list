@@ -225,51 +225,275 @@ export async function setupRoutes(app) {
     }
   });
 
-  // Graph endpoint - Data for price charts
+  // Graph endpoint - Data for price charts with server-side aggregation
   app.get("/api/graph", async (req, res) => {
     try {
       const timeframe = req.query.timeframe || "30d";
+      const intvl = req.query.interval || "4h";
       let days = null;
-      console.log(`API: Received timeframe: ${timeframe}`);
 
+      console.log(
+        `API: Received timeframe: ${timeframe}, intvl: ${intvl}, req.query:`,
+        JSON.stringify(req.query),
+      );
+
+      // Calculate timeframe in days
       if (timeframe === "1d") days = 1;
       else if (timeframe === "7d") days = 7;
       else if (timeframe === "30d") days = 30;
       else if (timeframe === "90d") days = 90;
-      else if (timeframe === "1y") {
-        days = 365;
-        console.log("API: Setting days to 365 for 1y timeframe");
-      } else if (timeframe === "3y") {
-        days = 365 * 3;
-        console.log("API: Setting days to 1095 for 3y timeframe");
-      } else if (timeframe === "all") {
-        days = 365 * 10; // Limit to 10 years for "all"
-        console.log("API: Setting days to 3650 for all timeframe");
-      }
-      // for cases without explicit limit, use null
+      else if (timeframe === "1y") days = 365;
+      else if (timeframe === "3y") days = 365 * 3;
+      else if (timeframe === "all") days = 365 * 10; // Limit to 10 years for "all"
 
+      const startTime = days
+        ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+        : null;
+
+      // Server-side aggregation based on interval
       let query, params;
-      if (days) {
-        const startTime = new Date(
-          Date.now() - days * 24 * 60 * 60 * 1000,
-        ).toISOString();
-        query =
-          "SELECT price, time as timestamp FROM xrp_price WHERE time >= $1 ORDER BY time ASC";
-        params = [startTime];
-      } else {
-        query =
-          "SELECT price, time as timestamp FROM xrp_price ORDER BY time ASC";
-        params = [];
+
+      // For very short timeframes with fine intervals, return raw data (limited)
+      if (
+        (timeframe === "1d" && ["1m", "1h"].includes(intvl)) ||
+        (timeframe === "7d" && intvl === "1h")
+      ) {
+        if (startTime) {
+          query = `
+            SELECT price, time as timestamp
+            FROM xrp_price
+            WHERE time >= $1
+            ORDER BY time ASC
+            LIMIT 2000
+          `;
+          params = [startTime];
+        } else {
+          query = `
+            SELECT price, time as timestamp
+            FROM xrp_price
+            ORDER BY time ASC
+            LIMIT 2000
+          `;
+          params = [];
+        }
+      }
+      // For 1-minute intervals (group every minute)
+      else if (intvl === "1m") {
+        if (startTime) {
+          query = `
+            SELECT
+              DATE_TRUNC('minute', time::timestamp) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            WHERE time >= $1
+            GROUP BY DATE_TRUNC('minute', time::timestamp)
+            ORDER BY timestamp ASC
+          `;
+          params = [startTime];
+        } else {
+          query = `
+            SELECT
+              DATE_TRUNC('minute', time::timestamp) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            GROUP BY DATE_TRUNC('minute', time::timestamp)
+            ORDER BY timestamp ASC
+          `;
+          params = [];
+        }
+      }
+      // For 1-hour intervals
+      else if (intvl === "1h") {
+        if (startTime) {
+          query = `
+            SELECT
+              DATE_TRUNC('hour', time::timestamp) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            WHERE time >= $1
+            GROUP BY DATE_TRUNC('hour', time::timestamp)
+            ORDER BY timestamp ASC
+          `;
+          params = [startTime];
+        } else {
+          query = `
+            SELECT
+              DATE_TRUNC('hour', time::timestamp) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            GROUP BY DATE_TRUNC('hour', time::timestamp)
+            ORDER BY timestamp ASC
+          `;
+          params = [];
+        }
+      }
+      // For 4-hour intervals
+      else if (intvl === "4h") {
+        if (startTime) {
+          query = `
+            SELECT
+              DATE_TRUNC('hour', time::timestamp) + INTERVAL '4 hour' * FLOOR(EXTRACT(hour FROM time::timestamp) / 4) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            WHERE time >= $1
+            GROUP BY DATE_TRUNC('hour', time::timestamp) + INTERVAL '4 hour' * FLOOR(EXTRACT(hour FROM time::timestamp) / 4)
+            ORDER BY timestamp ASC
+          `;
+          params = [startTime];
+        } else {
+          query = `
+            SELECT
+              DATE_TRUNC('hour', time::timestamp) + INTERVAL '4 hour' * FLOOR(EXTRACT(hour FROM time::timestamp) / 4) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            GROUP BY DATE_TRUNC('hour', time::timestamp) + INTERVAL '4 hour' * FLOOR(EXTRACT(hour FROM time::timestamp) / 4)
+            ORDER BY timestamp ASC
+          `;
+          params = [];
+        }
+      }
+      // For 12-hour intervals
+      else if (intvl === "12h") {
+        if (startTime) {
+          query = `
+            SELECT
+              DATE_TRUNC('hour', time::timestamp) + INTERVAL '12 hour' * FLOOR(EXTRACT(hour FROM time::timestamp) / 12) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            WHERE time >= $1
+            GROUP BY DATE_TRUNC('hour', time::timestamp) + INTERVAL '12 hour' * FLOOR(EXTRACT(hour FROM time::timestamp) / 12)
+            ORDER BY timestamp ASC
+          `;
+          params = [startTime];
+        } else {
+          query = `
+            SELECT
+              DATE_TRUNC('hour', time::timestamp) + INTERVAL '12 hour' * FLOOR(EXTRACT(hour FROM time::timestamp) / 12) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            GROUP BY DATE_TRUNC('hour', time::timestamp) + INTERVAL '12 hour' * FLOOR(EXTRACT(hour FROM time::timestamp) / 12)
+            ORDER BY timestamp ASC
+          `;
+          params = [];
+        }
+      }
+      // For daily intervals
+      else if (intvl === "1d") {
+        if (startTime) {
+          query = `
+            SELECT
+              DATE_TRUNC('day', time::timestamp) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            WHERE time >= $1
+            GROUP BY DATE_TRUNC('day', time::timestamp)
+            ORDER BY timestamp ASC
+          `;
+          params = [startTime];
+        } else {
+          query = `
+            SELECT
+              DATE_TRUNC('day', time::timestamp) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            GROUP BY DATE_TRUNC('day', time::timestamp)
+            ORDER BY timestamp ASC
+          `;
+          params = [];
+        }
+      }
+      // For weekly intervals
+      else if (intvl === "1w") {
+        if (startTime) {
+          query = `
+            SELECT
+              DATE_TRUNC('week', time::timestamp) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            WHERE time >= $1
+            GROUP BY DATE_TRUNC('week', time::timestamp)
+            ORDER BY timestamp ASC
+          `;
+          params = [startTime];
+        } else {
+          query = `
+            SELECT
+              DATE_TRUNC('week', time::timestamp) as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            GROUP BY DATE_TRUNC('week', time::timestamp)
+            ORDER BY timestamp ASC
+          `;
+          params = [];
+        }
+      }
+      // For monthly intervals
+      else if (intvl === "1M") {
+        if (startTime) {
+          query = `
+            SELECT
+              TO_CHAR(time::timestamp, 'YYYY-MM-01') || 'T00:00:00.000Z' as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            WHERE time >= $1
+            GROUP BY TO_CHAR(time::timestamp, 'YYYY-MM-01')
+            ORDER BY timestamp ASC
+          `;
+          params = [startTime];
+        } else {
+          query = `
+            SELECT
+              TO_CHAR(time::timestamp, 'YYYY-MM-01') || 'T00:00:00.000Z' as timestamp,
+              AVG(price) as price
+            FROM xrp_price
+            GROUP BY TO_CHAR(time::timestamp, 'YYYY-MM-01')
+            ORDER BY timestamp ASC
+          `;
+          params = [];
+        }
+      }
+      // Default fallback (should not happen with valid intervals)
+      else {
+        if (startTime) {
+          query = `
+            SELECT price, time as timestamp
+            FROM xrp_price
+            WHERE time >= $1
+            ORDER BY time ASC
+            LIMIT 500
+          `;
+          params = [startTime];
+        } else {
+          query = `
+            SELECT price, time as timestamp
+            FROM xrp_price
+            ORDER BY time ASC
+            LIMIT 500
+          `;
+          params = [];
+        }
       }
 
       const result = await db.query(query, params);
 
+      // Format prices as strings to match frontend expectations
+      const formattedData = result.rows.map((row) => ({
+        price: row.price.toString(),
+        timestamp:
+          typeof row.timestamp === "string"
+            ? row.timestamp
+            : row.timestamp.toISOString(),
+      }));
+
       res.json({
         success: true,
         timeframe,
-        data: result.rows,
+        intvl: intvl,
+        data: formattedData,
+        dataPoints: formattedData.length,
       });
     } catch (error) {
+      console.error("Graph API error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
