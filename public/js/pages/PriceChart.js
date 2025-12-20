@@ -26,9 +26,9 @@ class PriceChart {
         <div class="main-content">
           <div class="container">
             <h1>Price Chart</h1>
-            <p class="text-muted">XRP/USD price analysis and trends</p>
-            
-            <div class="card mt-3">
+              <p class="text-muted">XRP/USD price analysis and trends</p>
+
+              <div class="card mt-3">
               <div class="card-header">
                 <h3>Current Price</h3>
               </div>
@@ -95,9 +95,21 @@ class PriceChart {
                     </div>
                   </div>
 
-                  <button id="refreshChart" class="chart-refresh-btn">Refresh Chart</button>
-                </div>
-              </div>
+                   <button id="refreshChart" class="chart-refresh-btn">Refresh Chart</button>
+                 </div>
+
+                 <div style="margin-top: 20px; padding: 16px; border-top: 1px solid #dee2e6;">
+                   <h4 style="margin-top: 0;">Download Price History</h4>
+                   <button id="download-csv-btn" class="btn btn-secondary">Download CSV (ZIP)</button>
+                 </div>
+
+                 <div style="margin-top: 20px; padding: 16px; background-color: #f9f9f9; border-left: 4px solid #007bff; border-radius: 4px;">
+                   <h4 style="margin-top: 0;">About Price Data</h4>
+                   <p style="margin: 8px 0; font-size: 0.9rem;">
+                     The displayed prices are not official exchange rates. They are sourced from diverse third-party sources and are generally accurate.
+                   </p>
+                 </div>
+               </div>
             </div>
           </div>
         </div>
@@ -152,6 +164,14 @@ class PriceChart {
     if (refreshBtn) {
       refreshBtn.addEventListener("click", () => {
         this.loadChartData();
+      });
+    }
+
+    // Download button
+    const downloadCsvBtn = document.getElementById("download-csv-btn");
+    if (downloadCsvBtn) {
+      downloadCsvBtn.addEventListener("click", () => {
+        window.location.href = "/api/price/export/csv";
       });
     }
   }

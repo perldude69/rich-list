@@ -138,6 +138,26 @@ PORT=8585
 - Validate input parameters
 - Provide meaningful error messages
 
+### Modular API Structure
+
+The API is organized into thematic modules for maintainability:
+
+- **routes/api.js**: Main orchestrator that imports and sets up all API modules, applies session tracking middleware
+- **routes/analyticsApi.js**: User analytics and session tracking (`/api/analytics/*`)
+- **routes/adminApi.js**: Admin panel functionality (`/api/admin/*`)
+- **routes/statsApi.js**: Ledger statistics and trends (`/api/stats/*`, `/api/accounts/trend`)
+- **routes/accountsApi.js**: Wallet and rich list management (`/api/richlist`, `/api/search`, `/api/ranking-search`)
+- **routes/escrowsApi.js**: Escrow data and calendar (`/api/escrows/*`)
+- **routes/pricesApi.js**: Price data and charts (`/api/price/*`, `/api/graph`)
+- **routes/maintenanceApi.js**: System maintenance and operations (`/api/gaps/*`, `/api/backfill/*`)
+
+Each module exports a `setupRoutes(app)` function that registers its endpoints. When adding new endpoints:
+
+1. Identify the appropriate thematic module
+2. Add the endpoint code there
+3. Ensure proper imports (each module imports only what it needs)
+4. Test the endpoint functionality
+
 ### Security Considerations
 
 - Never expose database credentials
@@ -151,6 +171,7 @@ PORT=8585
 - Complex queries: Add appropriate indexes
 - Real-time updates: Use WebSocket broadcasting
 - Caching: Consider Redis for frequently accessed data
+- Price data sent to graph is not based on period and interval parameters
 
 ### Development Workflow
 
@@ -159,6 +180,7 @@ PORT=8585
 - Check server logs for database query performance
 - Verify data integrity after major operations
 - Don't kill or pkill server.js. Search for and kill pid. The production server is running server.js
+- For git push operations, use credentials from /home/jim/.github_credentials
 
 ### Common Issues & Solutions
 
@@ -181,6 +203,8 @@ PORT=8585
 
 ## Recent Changes
 
+- Refactored routes/api.js into modular API structure with thematic separation
+- Split large api.js (1262 lines) into 8 focused modules for better maintainability
 - Added destination_account display in escrow calendar (COALESCE logic)
 - Server configured for xrp_list_db_dev database
 - Escrow API includes destination fields

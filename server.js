@@ -14,6 +14,8 @@ import XRPLService from "./services/xrplService.mjs";
 import OracleSubscriber from "./services/oracleSubscriber.mjs";
 import PriceBackfiller from "./services/priceBackfiller.mjs";
 import GapTracker from "./services/gapTracker.mjs";
+import userAnalytics from "./services/userAnalytics.js";
+import { startAdminDashboard, updateAdminDashboard } from "./adminServer.js";
 
 // Load environment variables
 dotenv.config({ path: ".env.dev" });
@@ -160,6 +162,15 @@ async function broadcastUpdates() {
 
 // Start broadcasting updates every 10 seconds
 const broadcastInterval = setInterval(broadcastUpdates, 10000);
+
+// Monitor admin dashboard toggle every 30 seconds
+// const adminDashboardInterval = setInterval(async () => {
+//   try {
+//     await updateAdminDashboard();
+//   } catch (error) {
+//     console.error("Error updating admin dashboard:", error);
+//   }
+// }, 30000);
 
 // Socket.IO connection handler
 io.on("connection", (socket) => {
@@ -336,6 +347,14 @@ const startServer = async () => {
     const gapTracker = new GapTracker();
     // Make gap tracker globally available for API routes
     global.gapTracker = gapTracker;
+
+    // Initialize User Analytics
+    console.log("🔧 Initializing User Analytics...");
+    userAnalytics.startAggregationJobs();
+
+    // Initialize Admin Dashboard
+    console.log("🔧 Skipping Admin Dashboard for testing...");
+    // await startAdminDashboard();
 
     httpServer.listen(PORT, () => {
       console.log(`

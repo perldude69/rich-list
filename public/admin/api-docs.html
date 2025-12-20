@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API Documentation - ADMIN DASHBOARD</title>
+    <link rel="stylesheet" href="matrix.css" />
+    <style>
+      .api-section {
+        margin-bottom: 40px;
+        border: 1px solid #00ff00;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+
+      .api-section h3 {
+        background-color: rgba(0, 255, 0, 0.1);
+        padding: 15px;
+        margin: 0;
+        border-bottom: 1px solid #00ff00;
+      }
+
+      .api-content {
+        padding: 20px;
+      }
+
+      .endpoint {
+        background-color: rgba(0, 255, 0, 0.05);
+        border: 1px solid rgba(0, 255, 0, 0.3);
+        border-radius: 3px;
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+
+      .endpoint-method {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-weight: bold;
+        margin-right: 10px;
+      }
+
+      .endpoint-method.GET {
+        background-color: #00ff00;
+        color: #000;
+      }
+      .endpoint-method.POST {
+        background-color: #ffff00;
+        color: #000;
+      }
+
+      .endpoint-url {
+        font-family: "Courier New", monospace;
+        font-size: 1.1em;
+        margin-bottom: 10px;
+      }
+
+      .endpoint-description {
+        margin-bottom: 15px;
+        opacity: 0.9;
+      }
+
+      .code-block {
+        background-color: rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(0, 255, 0, 0.5);
+        border-radius: 3px;
+        padding: 15px;
+        margin: 10px 0;
+        font-family: "Courier New", monospace;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        position: relative;
+      }
+
+      .copy-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(0, 255, 0, 0.2);
+        border: 1px solid #00ff00;
+        color: #00ff00;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 0.8em;
+      }
+
+      .copy-btn:hover {
+        background-color: rgba(0, 255, 0, 0.3);
+      }
+
+      .section-nav {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: rgba(0, 255, 0, 0.1);
+        border: 1px solid #00ff00;
+        border-radius: 5px;
+        padding: 15px;
+        max-width: 200px;
+      }
+
+      .section-nav h4 {
+        margin-bottom: 10px;
+        font-size: 1em;
+      }
+
+      .section-nav ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .section-nav li {
+        margin-bottom: 5px;
+      }
+
+      .section-nav a {
+        color: #00ff00;
+        text-decoration: none;
+        font-size: 0.9em;
+      }
+
+      .section-nav a:hover {
+        text-decoration: underline;
+      }
+
+      .back-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="matrix-bg" id="matrix-bg"></div>
+
+    <div class="container">
+      <a href="/" class="btn back-btn">← Back to Dashboard</a>
+
+      <header class="header">
+        <h1>API DOCUMENTATION</h1>
+        <p>Complete endpoint reference with examples</p>
+      </header>
+
+      <!-- Public User APIs -->
+      <div class="api-section" id="public-apis">
+        <h3>Public User APIs</h3>
+        <div class="api-content">
+          <div class="endpoint">
+            <span class="endpoint-method GET">GET</span>
+            <div class="endpoint-url">/api/stats</div>
+            <div class="endpoint-description">
+              Get current XRPL ledger statistics and network data.
+            </div>
+
+            <div class="code-block">
+              curl -X GET "http://localhost:8585/api/stats"
+              <div
+                class="copy-btn"
+                onclick="copyToClipboard(this.previousSibling)"
+              >
+                Copy
+              </div>
+            </div>
+
+            <strong>Response:</strong>
+            <div class="code-block">
+              { "success": true, "data": { "total_accounts": 1234567,
+              "total_xrp": "50000000000", "average_balance_xrp": 40.5,
+              "ledger_index": 87654321, "timestamp": 1703123456 } }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <span class="endpoint-method GET">GET</span>
+            <div class="endpoint-url">/api/graph?timeframe=30d&interval=4h</div>
+            <div class="endpoint-description">
+              Get XRP price chart data with server-side aggregation.
+            </div>
+
+            <div class="code-block">
+              curl -X GET
+              "http://localhost:8585/api/graph?timeframe=30d&interval=4h"
+              <div
+                class="copy-btn"
+                onclick="copyToClipboard(this.previousSibling)"
+              >
+                Copy
+              </div>
+            </div>
+
+            <strong>Parameters:</strong>
+            <ul>
+              <li><code>timeframe</code>: 1d, 7d, 30d, 90d, 1y, 3y, all</li>
+              <li><code>interval</code>: 1m, 1h, 4h, 12h, 1d, 1w, 1M</li>
+            </ul>
+
+            <strong>Response:</strong>
+            <div class="code-block">
+              { "success": true, "timeframe": "30d", "interval": "4h", "data": [
+              { "price": "2.13450000", "timestamp": "2024-11-20T11:00:00.000Z" }
+              ], "dataPoints": 180 }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <span class="endpoint-method GET">GET</span>
+            <div class="endpoint-url">/api/accounts/richlist?limit=100</div>
+            <div class="endpoint-description">Get top XRP wallet rankings.</div>
+
+            <div class="code-block">
+              curl -X GET
+              "http://localhost:8585/api/accounts/richlist?limit=100"
+              <div
+                class="copy-btn"
+                onclick="copyToClipboard(this.previousSibling)"
+              >
+                Copy
+              </div>
+            </div>
+
+            <strong>Response:</strong>
+            <div class="code-block">
+              { "success": true, "data": [ { "account": "r...", "balance":
+              "1000000000", "rank": 1 } ] }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics APIs -->
+      <div class="api-section" id="analytics-apis">
+        <h3>Analytics APIs</h3>
+        <div class="api-content">
+          <div class="endpoint">
+            <span class="endpoint-method GET">GET</span>
+            <div class="endpoint-url">/api/analytics/active-users/current</div>
+            <div class="endpoint-description">
+              Get current active user count (30-minute sessions).
+            </div>
+
+            <div class="code-block">
+              curl -X GET
+              "http://localhost:8585/api/analytics/active-users/current"
+              <div
+                class="copy-btn"
+                onclick="copyToClipboard(this.previousSibling)"
+              >
+                Copy
+              </div>
+            </div>
+
+            <strong>Response:</strong>
+            <div class="code-block">
+              { "success": true, "active_users": 42 }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <span class="endpoint-method GET">GET</span>
+            <div class="endpoint-url">
+              /api/analytics/active-users/daily?interval=1h
+            </div>
+            <div class="endpoint-description">
+              Get daily active user analytics with interval options.
+            </div>
+
+            <div class="code-block">
+              curl -X GET
+              "http://localhost:8585/api/analytics/active-users/daily?interval=1h"
+              <div
+                class="copy-btn"
+                onclick="copyToClipboard(this.previousSibling)"
+              >
+                Copy
+              </div>
+            </div>
+
+            <strong>Parameters:</strong>
+            <ul>
+              <li>
+                <code>interval</code>: 1h (hourly) or 1d (daily) - default: 1h
+              </li>
+            </ul>
+
+            <strong>Response:</strong>
+            <div class="code-block">
+              { "success": true, "labels": ["2024-01-01 00:00", "2024-01-01
+              01:00", ...], "data": [125, 134, 128, ...] }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Control APIs -->
+      <div class="api-section" id="admin-apis">
+        <h3>Admin Control APIs</h3>
+        <div class="api-content">
+          <div class="endpoint">
+            <span class="endpoint-method POST">POST</span>
+            <div class="endpoint-url">/api/admin/toggle-dashboard</div>
+            <div class="endpoint-description">
+              Enable or disable the admin dashboard server.
+            </div>
+
+            <div class="code-block">
+              curl -X POST "http://localhost:8585/api/admin/toggle-dashboard" \
+              -H "Content-Type: application/json" \ -d '{"enabled": true}'
+              <div
+                class="copy-btn"
+                onclick="copyToClipboard(this.previousSibling)"
+              >
+                Copy
+              </div>
+            </div>
+
+            <strong>Request Body:</strong>
+            <div class="code-block">{ "enabled": true // or false }</div>
+
+            <strong>Response:</strong>
+            <div class="code-block">{ "success": true, "enabled": true }</div>
+          </div>
+
+          <div class="endpoint">
+            <span class="endpoint-method GET">GET</span>
+            <div class="endpoint-url">/api/admin/dashboard-enabled</div>
+            <div class="endpoint-description">
+              Check if the admin dashboard is currently enabled.
+            </div>
+
+            <div class="code-block">
+              curl -X GET "http://localhost:8585/api/admin/dashboard-enabled"
+              <div
+                class="copy-btn"
+                onclick="copyToClipboard(this.previousSibling)"
+              >
+                Copy
+              </div>
+            </div>
+
+            <strong>Response:</strong>
+            <div class="code-block">{ "success": true, "enabled": false }</div>
+          </div>
+
+          <div class="endpoint">
+            <span class="endpoint-method GET">GET</span>
+            <div class="endpoint-url">/api/admin/export/csv</div>
+            <div class="endpoint-description">
+              Export all user analytics data as CSV.
+            </div>
+
+            <div class="code-block">
+              curl -X GET "http://localhost:8585/api/admin/export/csv" \
+              --output user-analytics.csv
+              <div
+                class="copy-btn"
+                onclick="copyToClipboard(this.previousSibling)"
+              >
+                Copy
+              </div>
+            </div>
+
+            <strong>Response:</strong> CSV file download
+            <div class="code-block">
+              Table,Date/Time,Active Users hourly_active_users,2024-01-01
+              00:00:00,125 daily_active_users,2024-01-01,134 ...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WebSocket APIs -->
+      <div class="api-section" id="websocket-apis">
+        <h3>WebSocket APIs</h3>
+        <div class="api-content">
+          <div class="endpoint">
+            <div class="endpoint-url">ws://localhost:8585</div>
+            <div class="endpoint-description">
+              Real-time WebSocket connection for live data updates.
+            </div>
+
+            <strong>Client Connection:</strong>
+            <div class="code-block">
+              const socket = io('ws://localhost:8585'); // Subscribe to price
+              updates socket.emit('subscribe:price'); // Listen for updates
+              socket.on('price:update', (data) => { console.log('Price update:',
+              data); });
+              <div
+                class="copy-btn"
+                onclick="copyToClipboard(this.previousSibling)"
+              >
+                Copy
+              </div>
+            </div>
+
+            <strong>Available Subscriptions:</strong>
+            <ul>
+              <li><code>subscribe:price</code> - XRP price updates</li>
+              <li><code>subscribe:stats</code> - Network statistics</li>
+              <li><code>subscribe:ledger</code> - Account ledger data</li>
+              <li><code>subscribe:escrow</code> - Escrow data updates</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation sidebar -->
+    <nav class="section-nav">
+      <h4>Sections</h4>
+      <ul>
+        <li><a href="#public-apis">Public APIs</a></li>
+        <li><a href="#analytics-apis">Analytics APIs</a></li>
+        <li><a href="#admin-apis">Admin APIs</a></li>
+        <li><a href="#websocket-apis">WebSocket APIs</a></li>
+      </ul>
+    </nav>
+
+    <script>
+      // Matrix code rain effect (same as dashboard)
+      function createMatrixRain() {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        document.getElementById("matrix-bg").appendChild(canvas);
+
+        const chars =
+          "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン";
+        const columns = Math.floor(canvas.width / 20);
+        const drops = new Array(columns).fill(1);
+
+        function draw() {
+          ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.fillStyle = "#00ff00";
+          ctx.font = "15px monospace";
+
+          for (let i = 0; i < drops.length; i++) {
+            const char = chars[Math.floor(Math.random() * chars.length)];
+            ctx.fillText(char, i * 20, drops[i] * 20);
+
+            if (drops[i] * 20 > canvas.height && Math.random() > 0.975) {
+              drops[i] = 0;
+            }
+            drops[i]++;
+          }
+        }
+
+        setInterval(draw, 50);
+      }
+
+      // Copy to clipboard functionality
+      function copyToClipboard(element) {
+        const text = element.textContent;
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            const btn = element;
+            const originalText = btn.textContent;
+            btn.textContent = "Copied!";
+            btn.style.backgroundColor = "rgba(0, 255, 0, 0.4)";
+            setTimeout(() => {
+              btn.textContent = originalText;
+              btn.style.backgroundColor = "";
+            }, 1000);
+          })
+          .catch((err) => {
+            console.error("Failed to copy: ", err);
+          });
+      }
+
+      // Initialize when page loads
+      document.addEventListener("DOMContentLoaded", () => {
+        createMatrixRain();
+      });
+    </script>
+  </body>
+</html>

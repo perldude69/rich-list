@@ -22,3 +22,4 @@ backups/
 *.backup
 data/
 *.csv
+.github_credentials
