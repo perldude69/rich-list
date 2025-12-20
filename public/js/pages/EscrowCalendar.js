@@ -45,13 +45,22 @@ class EscrowCalendar {
                       <!-- Calendar Navigation -->
                       <div class="calendar-navigation">
                         <button class="btn btn-sm" id="prev-month-btn">← Previous</button>
-                        <div style="text-align: center; flex: 1;">
-                          <h3 id="calendar-title">December 2025 UTC</h3>
-                        </div>
+                         <div style="text-align: center; flex: 1;">
+                           <h3>
+                             <span id="calendar-month">December</span>
+                              <select id="year-selector" style="font-size: 1.3rem; font-family: inherit; color: inherit; border: none; background: transparent; cursor: pointer;"></select>
+                             UTC
+                           </h3>
+                         </div>
                         <button class="btn btn-sm" id="next-month-btn">Next →</button>
-                      </div>
+                       </div>
 
-                     <!-- Calendar Weekday Headers -->
+                       <!-- Export Button -->
+                       <div style="text-align: center; margin: 10px 0;">
+                         <button class="btn btn-secondary" id="export-csv-btn">Download Escrow History (CSV)</button>
+                       </div>
+
+                      <!-- Calendar Weekday Headers -->
                      <div class="calendar-weekdays">
                        <div>Sun</div>
                        <div>Mon</div>
@@ -139,6 +148,23 @@ class EscrowCalendar {
     if (nextMonthBtn) {
       nextMonthBtn.addEventListener("click", () => this.nextMonth());
     }
+
+    // Year selector
+    const yearSelect = document.getElementById("year-selector");
+    if (yearSelect) {
+      yearSelect.addEventListener("change", (e) => {
+        const newYear = parseInt(e.target.value);
+        this.currentDate.setUTCFullYear(newYear);
+        this.hideEscrowDetails();
+        this.renderCalendar();
+      });
+    }
+
+    // Export CSV button
+    const exportBtn = document.getElementById("export-csv-btn");
+    if (exportBtn) {
+      exportBtn.addEventListener("click", () => this.exportEscrowsCSV());
+    }
   }
 
   async loadCalendarData() {
@@ -149,6 +175,9 @@ class EscrowCalendar {
 
       // Load statistics
       await this.loadStatistics();
+
+      // Populate year dropdown
+      this.populateYearDropdown();
     } catch (error) {
       console.error("Error in loadCalendarData:", error);
       store.setError(`Failed to load escrow calendar: ${error.message}`);
@@ -198,15 +227,14 @@ class EscrowCalendar {
     const year = this.currentDate.getUTCFullYear();
     const month = this.currentDate.getUTCMonth();
 
-    // Update title
-    const title = document.getElementById("calendar-title");
-    if (title) {
+    // Update month display
+    const monthSpan = document.getElementById("calendar-month");
+    if (monthSpan) {
       const monthName = this.currentDate.toLocaleString("en-US", {
-        year: "numeric",
         month: "long",
         timeZone: "UTC",
       });
-      title.textContent = monthName + " UTC";
+      monthSpan.textContent = monthName;
     }
 
     // Build date range for API call
@@ -417,12 +445,75 @@ class EscrowCalendar {
     detailsContent.innerHTML = html;
   }
 
+  hideEscrowDetails() {
+    // Clear selected state
+    this.selectedDate = null;
+    this.selectedDateEscrows = [];
+
+    // Hide day total
+    const dayTotal = document.getElementById("day-total");
+    if (dayTotal) {
+      dayTotal.style.display = "none";
+    }
+
+    // Reset details content to default message
+    const detailsContent = document.getElementById("escrow-details-content");
+    if (detailsContent) {
+      detailsContent.innerHTML =
+        '<p class="text-muted">Click on a calendar date to view escrow details</p>';
+    }
+  }
+
+  populateYearDropdown() {
+    const yearSelect = document.getElementById("year-selector");
+    if (!yearSelect) return;
+
+    const startYear = 2013;
+    const endYear = 2113;
+    const currentYear = this.currentDate.getUTCFullYear();
+
+    yearSelect.innerHTML = "";
+    for (let year = startYear; year <= endYear; year++) {
+      const option = document.createElement("option");
+      option.value = year;
+      option.textContent = year;
+      if (year === currentYear) {
+        option.selected = true;
+      }
+      yearSelect.appendChild(option);
+    }
+  }
+
+  async exportEscrowsCSV() {
+    try {
+      const response = await fetch("/api/escrows/export");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "xrpl_escrows.csv";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error downloading CSV:", error);
+      alert("Failed to download escrow data. Please try again.");
+    }
+  }
+
   previousMonth() {
+    this.hideEscrowDetails();
     this.currentDate.setUTCMonth(this.currentDate.getUTCMonth() - 1);
     this.renderCalendar();
   }
 
   nextMonth() {
+    this.hideEscrowDetails();
     this.currentDate.setUTCMonth(this.currentDate.getUTCMonth() + 1);
     this.renderCalendar();
   }

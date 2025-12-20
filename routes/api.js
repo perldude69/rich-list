@@ -316,6 +316,7 @@ export async function setupRoutes(app) {
         `SELECT
            id,
            account_id,
+           destination,
            amount / 1000000.0 as amount_xrp,
            finish_after,
            created_at
@@ -343,6 +344,7 @@ export async function setupRoutes(app) {
         escrowsByDate[dateKey].escrows.push({
           id: escrow.id,
           wallet: escrow.account_id,
+          destination: escrow.destination,
           xrp: parseFloat(escrow.amount_xrp),
           full_date: `${dateKey}T00:00:00Z`, // Simplified ISO format
         });
@@ -363,6 +365,60 @@ export async function setupRoutes(app) {
           end: endDate,
         },
       });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Escrow export endpoint - Download all escrows as CSV
+  app.get("/api/escrows/export", async (req, res) => {
+    try {
+      const result = await db.query(
+        `SELECT
+            id,
+            account_id as source_wallet,
+            COALESCE(destination, '') as destination_wallet,
+            amount / 1000000.0 as amount_xrp,
+            finish_after as expiration_date,
+            created_at
+          FROM escrows
+          ORDER BY finish_after ASC`,
+      );
+
+      // Build CSV content
+      const headers = [
+        "ID",
+        "Source Wallet",
+        "Destination Wallet",
+        "Amount (XRP)",
+        "Expiration Date",
+        "Created At",
+      ];
+
+      let csvContent = headers.join(",") + "\n";
+
+      result.rows.forEach((row) => {
+        const values = [
+          row.id,
+          `"${row.source_wallet}"`, // Quote wallet addresses
+          `"${row.destination_wallet}"`, // Quote wallet addresses
+          row.amount_xrp,
+          row.expiration_date
+            ? row.expiration_date.toISOString().split("T")[0]
+            : "", // YYYY-MM-DD format
+          row.created_at ? row.created_at.toISOString() : "",
+        ];
+        csvContent += values.join(",") + "\n";
+      });
+
+      // Set headers for CSV download
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="xrpl_escrows.csv"',
+      );
+
+      res.send(csvContent);
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
