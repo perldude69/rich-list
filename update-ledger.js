@@ -176,6 +176,20 @@ async function updateDatabase(ledgerData, stats) {
   try {
     await client.query("BEGIN");
 
+    // Create stats table if it doesn't exist
+    await client.query(`
+       CREATE TABLE IF NOT EXISTS stats (
+         ind INTEGER PRIMARY KEY,
+         ledgerindex INTEGER,
+         ledgerdate VARCHAR(30),
+         totalxrp NUMERIC(20, 8),
+         walletxrp NUMERIC(20, 8),
+         escrowxrp NUMERIC(20, 8),
+         numaccounts INTEGER,
+         latest INTEGER
+       );
+     `);
+
     const ledgerIndex = ledgerData.ledger.index;
     const ledgerDate = new Date(ledgerData.ledger.closeTime).toISOString();
 

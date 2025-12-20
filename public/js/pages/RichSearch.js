@@ -30,11 +30,11 @@ class RichSearch {
                 <div class="form-group">
                   <label class="form-label">Wallet Addresses or XRP Amounts</label>
                    <textarea
-                     class="form-control"
-                     id="search-input"
-                     rows="3"
-                     placeholder="Enter wallet addresses (starting with 'r') or XRP amounts, separated by commas, spaces, semicolons, or hyphens&#10;e.g., rABC123, 1000000; rDEF456 - 500000"
-                   ></textarea>
+                    class="form-control"
+                    id="search-input"
+                    rows="3"
+                    placeholder="Enter wallet addresses (starting with 'r') or XRP amounts, separated by commas, spaces, semicolons, or hyphens&#10;e.g., rABC123, 1000000; rDEF456 - 500000"
+                  ></textarea>
                   <small class="text-muted">Enter one or more wallet addresses and/or XRP amounts, separated by commas, spaces, semicolons, or hyphens</small>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center;">
@@ -44,6 +44,7 @@ class RichSearch {
               </div>
             </div>
 
+            <div id="percentile-results" class="mt-3"></div>
             <div id="search-results" class="mt-3"></div>
           </div>
         </div>
@@ -122,6 +123,108 @@ class RichSearch {
     return { addresses, amounts, errors };
   }
 
+  async getPercentileData() {
+    try {
+      const response = await api.get("/stats/percentiles");
+      return response.success ? response.data : null;
+    } catch (error) {
+      console.error("Failed to fetch percentile data:", error);
+      return null;
+    }
+  }
+
+  getThemeAccentColor() {
+    const root = document.documentElement;
+    const computedStyle = getComputedStyle(root);
+    // Try to get the primary color from CSS variables
+    return computedStyle.getPropertyValue("--color-primary").trim() || "#007bff";
+  }
+
+  generatePercentileTableHTML(percentileData, userPercentile, userBalance, userRank) {
+    if (!percentileData || percentileData.length === 0) {
+      return "";
+    }
+
+    const formatNumber = (num) => {
+      return num.toLocaleString("en-US", { maximumFractionDigits: 0 });
+    };
+
+    const formatXrp = (num) => {
+      return num.toLocaleString("en-US", { maximumFractionDigits: 6 });
+    };
+
+    // Find insertion position for user row
+    const percentiles = percentileData.map((p) =>
+      parseFloat(p.percentile.replace(" %", ""))
+    );
+    let insertIndex = percentileData.length;
+    for (let i = 0; i < percentiles.length; i++) {
+      if (userPercentile < percentiles[i]) {
+        insertIndex = i;
+        break;
+      }
+    }
+
+    // Get theme accent color
+    const themeColor = this.getThemeAccentColor();
+    const userRowStyle = `background-color: ${themeColor}20; border-left: 4px solid ${themeColor}; font-weight: bold;`;
+
+    // Build table rows
+    let rows = "";
+
+    // Add percentile data rows before insertion point
+    for (let i = 0; i < insertIndex; i++) {
+      const item = percentileData[i];
+      rows += `<tr>
+        <td align="center">${item.percentile}</td>
+        <td align="center">${formatNumber(item.account_count)}</td>
+        <td align="center">${formatXrp(item.balance_threshold_xrp)} XRP</td>
+      </tr>`;
+    }
+
+    // Add user row
+    rows += `<tr style="${userRowStyle}">
+      <td align="center">${userPercentile.toFixed(3)} %</td>
+      <td align="center">You - #${userRank.toLocaleString("en-US")}</td>
+      <td align="center">${formatXrp(userBalance)} XRP</td>
+    </tr>`;
+
+    // Add percentile data rows after insertion point
+    for (let i = insertIndex; i < percentileData.length; i++) {
+      const item = percentileData[i];
+      rows += `<tr>
+        <td align="center">${item.percentile}</td>
+        <td align="center">${formatNumber(item.account_count)}</td>
+        <td align="center">${formatXrp(item.balance_threshold_xrp)} XRP</td>
+      </tr>`;
+    }
+
+    return `
+      <div class="card">
+        <div class="card-header">
+          <h3>Percentile Distribution</h3>
+        </div>
+        <div class="card-body">
+          <div style="overflow-x: auto;">
+            <table class="styled-table" border="2">
+              <thead>
+                <tr align="center"><th colspan="3">Percentage # Accounts Balance equals (or greater than)</th></tr>
+                <tr>
+                  <td align="center"><strong>Percentile</strong></td>
+                  <td align="center"><strong># Accounts</strong></td>
+                  <td align="center"><strong>Balance (or greater)</strong></td>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   async search() {
     const input = document.getElementById("search-input").value.trim();
     if (!input) {
@@ -150,7 +253,9 @@ class RichSearch {
       if (!response.success || !response.data) {
         this.displayNoResults(input);
       } else {
-        this.displayRankingResults(response.data, parsed);
+        // Fetch percentile data and display both percentile table and ranking results
+        const percentileData = await this.getPercentileData();
+        this.displayRankingResults(response.data, parsed, percentileData);
       }
 
       store.setState({ currentAccount: response.data });
@@ -172,8 +277,9 @@ class RichSearch {
     `;
   }
 
-  displayRankingResults(data, parsed) {
+  displayRankingResults(data, parsed, percentileData) {
     const resultsDiv = document.getElementById("search-results");
+    const percentileDiv = document.getElementById("percentile-results");
 
     const formatNumber = (num) => {
       return parseFloat(num).toLocaleString("en-US", {
@@ -285,6 +391,19 @@ class RichSearch {
           </table>
         </div>
       `;
+    }
+
+    // Display percentile table if data available
+    if (percentileData && percentileData.length > 0) {
+      const percentileTableHTML = this.generatePercentileTableHTML(
+        percentileData,
+        percentile,
+        balance_xrp,
+        rank
+      );
+      if (percentileDiv) {
+        percentileDiv.innerHTML = percentileTableHTML;
+      }
     }
 
     resultsDiv.innerHTML = `

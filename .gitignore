@@ -16,3 +16,10 @@ backups/
 *.swo
 *~
 .cache/
+
+# DB content ignores
+*.dump
+*.backup
+data/
+*.csv
+.github_credentials

@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ADMIN DASHBOARD v1.0</title>
+    <link rel="stylesheet" href="matrix.css" />
+  </head>
+  <body>
+    <div class="matrix-bg" id="matrix-bg"></div>
+
+    <div class="container">
+      <header class="header">
+        <h1>ADMIN DASHBOARD v1.0</h1>
+        <p>Real-time User Analytics & System Monitoring</p>
+      </header>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3 id="active-users">--</h3>
+          <p>Active Users</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="total-sessions">--</h3>
+          <p>Total Sessions</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="active-sessions">--</h3>
+          <p>Active Sessions</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="sessions-24h">--</h3>
+          <p>Sessions (24h)</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="control-group">
+          <label for="period-select">Period:</label>
+          <select id="period-select">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="interval-select">Interval:</label>
+          <select id="interval-select">
+            <option value="1h">1 Hour</option>
+            <option value="1d">1 Day</option>
+            <option value="1w">1 Week</option>
+            <option value="1M">1 Month</option>
+          </select>
+        </div>
+
+        <button id="refresh-btn">Refresh Data</button>
+      </div>
+
+      <div class="chart-container">
+        <h2 id="chart-title">Daily Active Users (1h intervals)</h2>
+        <canvas id="analytics-chart"></canvas>
+      </div>
+
+      <div class="actions">
+        <a href="/api-docs" class="btn">API Documentation</a>
+        <button id="export-csv-btn" class="btn">Export CSV</button>
+      </div>
+    </div>
+
+    <div id="status-message" class="status" style="display: none"></div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+      // Matrix code rain effect
+      function createMatrixRain() {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        document.getElementById("matrix-bg").appendChild(canvas);
+
+        const chars =
+          "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン";
+        const columns = Math.floor(canvas.width / 20);
+        const drops = new Array(columns).fill(1);
+
+        function draw() {
+          ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.fillStyle = "#00ff00";
+          ctx.font = "15px monospace";
+
+          for (let i = 0; i < drops.length; i++) {
+            const char = chars[Math.floor(Math.random() * chars.length)];
+            ctx.fillText(char, i * 20, drops[i] * 20);
+
+            if (drops[i] * 20 > canvas.height && Math.random() > 0.975) {
+              drops[i] = 0;
+            }
+            drops[i]++;
+          }
+        }
+
+        setInterval(draw, 50);
+      }
+
+      // Dashboard functionality
+      class AdminDashboard {
+        constructor() {
+          this.chart = null;
+          this.currentPeriod = "daily";
+          this.currentInterval = "1h";
+          this.updateInterval = null;
+
+          this.init();
+        }
+
+        init() {
+          createMatrixRain();
+          this.setupEventListeners();
+          this.startAutoUpdate();
+          this.loadCurrentStats();
+          this.loadChartData();
+        }
+
+        setupEventListeners() {
+          document
+            .getElementById("period-select")
+            .addEventListener("change", (e) => {
+              this.currentPeriod = e.target.value;
+              this.updateIntervalOptions();
+              this.loadChartData();
+            });
+
+          document
+            .getElementById("interval-select")
+            .addEventListener("change", (e) => {
+              this.currentInterval = e.target.value;
+              this.loadChartData();
+            });
+
+          document
+            .getElementById("refresh-btn")
+            .addEventListener("click", () => {
+              this.loadCurrentStats();
+              this.loadChartData();
+            });
+
+          document
+            .getElementById("export-csv-btn")
+            .addEventListener("click", () => {
+              this.exportCSV();
+            });
+        }
+
+        updateIntervalOptions() {
+          const intervalSelect = document.getElementById("interval-select");
+          const period = this.currentPeriod;
+
+          // Clear existing options
+          intervalSelect.innerHTML = "";
+
+          // Add appropriate interval options based on period
+          if (period === "daily") {
+            this.addOption(intervalSelect, "1h", "1 Hour");
+            this.addOption(intervalSelect, "1d", "1 Day");
+          } else if (period === "weekly") {
+            this.addOption(intervalSelect, "1d", "1 Day");
+            this.addOption(intervalSelect, "1w", "1 Week");
+          } else if (period === "monthly") {
+            this.addOption(intervalSelect, "1d", "1 Day");
+            this.addOption(intervalSelect, "1w", "1 Week");
+            this.addOption(intervalSelect, "1M", "1 Month");
+          } else if (period === "yearly") {
+            this.addOption(intervalSelect, "1M", "1 Month");
+            this.addOption(intervalSelect, "1y", "1 Year");
+          }
+
+          // Set default interval
+          this.currentInterval = intervalSelect.options[0].value;
+          intervalSelect.value = this.currentInterval;
+        }
+
+        addOption(select, value, text) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = text;
+          select.appendChild(option);
+        }
+
+        async loadCurrentStats() {
+          try {
+            const response = await fetch("/api/current");
+            const data = await response.json();
+
+            document.getElementById("active-users").textContent =
+              data.active_users;
+            document.getElementById("total-sessions").textContent =
+              data.total_sessions;
+            document.getElementById("active-sessions").textContent =
+              data.active_sessions;
+            document.getElementById("sessions-24h").textContent =
+              data.sessions_24h;
+          } catch (error) {
+            console.error("Error loading current stats:", error);
+            this.showStatus("Error loading stats", "error");
+          }
+        }
+
+        async loadChartData() {
+          try {
+            const response = await fetch(
+              `/api/chart/${this.currentPeriod}/${this.currentInterval}`,
+            );
+            const data = await response.json();
+
+            this.updateChart(data);
+            this.updateChartTitle();
+          } catch (error) {
+            console.error("Error loading chart data:", error);
+            this.showStatus("Error loading chart data", "error");
+          }
+        }
+
+        updateChart(data) {
+          const ctx = document
+            .getElementById("analytics-chart")
+            .getContext("2d");
+          const container = document.querySelector(".chart-container");
+
+          // Set explicit canvas size constraints
+          const containerWidth = container.clientWidth - 40; // Account for padding
+          const containerHeight = 320; // Fixed internal height
+
+          ctx.canvas.width = containerWidth;
+          ctx.canvas.height = containerHeight;
+          ctx.canvas.style.maxHeight = "100%";
+          ctx.canvas.style.height = "auto";
+
+          if (this.chart) {
+            try {
+              this.chart.destroy();
+            } catch (error) {
+              console.warn("Chart destruction error:", error);
+            }
+            this.chart = null;
+          }
+
+          // Check for empty data
+          if (!data || !data.labels || data.labels.length === 0) {
+            this.showNoDataMessage();
+            return;
+          }
+
+          this.chart = new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: data.labels || [],
+              datasets: [
+                {
+                  label: "Active Users",
+                  data: data.data || [],
+                  borderColor: "#00ff00",
+                  backgroundColor: "rgba(0, 255, 0, 0.1)",
+                  borderWidth: 2,
+                  fill: true,
+                  pointBackgroundColor: "#00ff00",
+                  pointBorderColor: "#000000",
+                  pointRadius: 4,
+                  tension: 0.4,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              layout: {
+                padding: {
+                  top: 10,
+                  right: 20,
+                  bottom: 10,
+                  left: 10,
+                },
+              },
+              plugins: {
+                legend: {
+                  display: true,
+                  position: "top",
+                  labels: {
+                    color: "#00ff00",
+                    font: {
+                      family: "monospace",
+                      size: 12,
+                    },
+                    padding: 10,
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  display: true,
+                  ticks: {
+                    color: "#00ff00",
+                    font: {
+                      family: "monospace",
+                      size: 11,
+                    },
+                    maxRotation: 45,
+                    minRotation: 0,
+                  },
+                  grid: {
+                    color: "rgba(0, 255, 0, 0.2)",
+                  },
+                },
+                y: {
+                  display: true,
+                  beginAtZero: true,
+                  ticks: {
+                    color: "#00ff00",
+                    font: {
+                      family: "monospace",
+                      size: 11,
+                    },
+                    callback: (value) => value.toFixed(0),
+                  },
+                  grid: {
+                    color: "rgba(0, 255, 0, 0.2)",
+                  },
+                },
+              },
+              resizeDelay: 100,
+              animation: {
+                duration: 300,
+                easing: "easeOutQuart",
+              },
+            },
+          });
+        }
+
+        updateChartTitle() {
+          const periodNames = {
+            daily: "Daily",
+            weekly: "Weekly",
+            monthly: "Monthly",
+            yearly: "Yearly",
+          };
+
+          const intervalNames = {
+            "1h": "1 Hour",
+            "1d": "1 Day",
+            "1w": "1 Week",
+            "1M": "1 Month",
+            "1y": "1 Year",
+          };
+
+          const title = `${periodNames[this.currentPeriod]} Active Users (${intervalNames[this.currentInterval]} intervals)`;
+          document.getElementById("chart-title").textContent = title;
+        }
+
+        startAutoUpdate() {
+          this.updateInterval = setInterval(() => {
+            this.loadCurrentStats();
+            this.loadChartData();
+          }, 30000); // Update every 30 seconds
+        }
+
+        stopAutoUpdate() {
+          if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+          }
+        }
+
+        async exportCSV() {
+          try {
+            const response = await fetch("/api/admin/export/csv");
+            if (response.ok) {
+              const blob = await response.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "user-analytics.csv";
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              window.URL.revokeObjectURL(url);
+
+              this.showStatus("CSV exported successfully");
+            } else {
+              throw new Error("Export failed");
+            }
+          } catch (error) {
+            console.error("Error exporting CSV:", error);
+            this.showStatus("Error exporting CSV", "error");
+          }
+        }
+
+        showStatus(message, type = "") {
+          const statusEl = document.getElementById("status-message");
+          statusEl.textContent = message;
+          statusEl.className = `status ${type}`;
+          statusEl.style.display = "block";
+
+          setTimeout(() => {
+            statusEl.style.display = "none";
+          }, 3000);
+        }
+      }
+
+        showNoDataMessage() {
+          const ctx = document.getElementById("analytics-chart").getContext("2d");
+          const container = document.querySelector('.chart-container');
+
+          // Clear canvas
+          ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+          // Draw "No Data" message
+          ctx.fillStyle = '#00ff00';
+          ctx.font = '24px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('NO DATA AVAILABLE', ctx.canvas.width / 2, ctx.canvas.height / 2);
+
+          ctx.font = '14px monospace';
+          ctx.fillText('Data will populate automatically', ctx.canvas.width / 2, ctx.canvas.height / 2 + 30);
+        }
+
+        // Handle window resize
+        handleResize() {
+          if (this.chart && this.chart.canvas) {
+            const container = document.querySelector('.chart-container');
+            if (container) {
+              const containerWidth = container.clientWidth - 40;
+              this.chart.canvas.width = containerWidth;
+              this.chart.resize();
+            }
+          }
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const dashboard = new AdminDashboard();
+
+            // Add window resize listener
+            window.addEventListener('resize', () => {
+              dashboard.handleResize();
+            });
+        });
+    </script>
+  </body>
+</html>

@@ -26,9 +26,9 @@ class PriceChart {
         <div class="main-content">
           <div class="container">
             <h1>Price Chart</h1>
-            <p class="text-muted">XRP/USD price analysis and trends</p>
-            
-            <div class="card mt-3">
+              <p class="text-muted">XRP/USD price analysis and trends</p>
+
+              <div class="card mt-3">
               <div class="card-header">
                 <h3>Current Price</h3>
               </div>
@@ -95,9 +95,21 @@ class PriceChart {
                     </div>
                   </div>
 
-                  <button id="refreshChart" class="chart-refresh-btn">Refresh Chart</button>
-                </div>
-              </div>
+                   <button id="refreshChart" class="chart-refresh-btn">Refresh Chart</button>
+                 </div>
+
+                 <div style="margin-top: 20px; padding: 16px; border-top: 1px solid #dee2e6;">
+                   <h4 style="margin-top: 0;">Download Price History</h4>
+                   <button id="download-csv-btn" class="btn btn-secondary">Download CSV (ZIP)</button>
+                 </div>
+
+                 <div style="margin-top: 20px; padding: 16px; background-color: #f9f9f9; border-left: 4px solid #007bff; border-radius: 4px;">
+                   <h4 style="margin-top: 0;">About Price Data</h4>
+                   <p style="margin: 8px 0; font-size: 0.9rem;">
+                     The displayed prices are not official exchange rates. They are sourced from diverse third-party sources and are generally accurate.
+                   </p>
+                 </div>
+               </div>
             </div>
           </div>
         </div>
@@ -152,6 +164,14 @@ class PriceChart {
     if (refreshBtn) {
       refreshBtn.addEventListener("click", () => {
         this.loadChartData();
+      });
+    }
+
+    // Download button
+    const downloadCsvBtn = document.getElementById("download-csv-btn");
+    if (downloadCsvBtn) {
+      downloadCsvBtn.addEventListener("click", () => {
+        window.location.href = "/api/price/export/csv";
       });
     }
   }
@@ -286,7 +306,7 @@ class PriceChart {
   async loadChartData() {
     store.setLoading(true);
     try {
-      let endpoint = `/graph?timeframe=${this.currentPeriod}`;
+      let endpoint = `/graph?timeframe=${this.currentPeriod}&interval=${this.currentInterval}`;
       const response = await api.get(endpoint);
 
       if (response.data && Array.isArray(response.data)) {
@@ -439,61 +459,23 @@ class PriceChart {
   aggregateData(data) {
     if (!data || data.length === 0) return [];
 
-    // For "all" period with "1d" interval, group by day (take last price of each day)
-    if (this.currentPeriod === "all" && this.currentInterval === "1d") {
-      const dailyData = {};
-      data.forEach((item) => {
-        const date = new Date(item.timestamp).toISOString().split("T")[0]; // YYYY-MM-DD
-        dailyData[date] = item; // Overwrite with last item of day
-      });
-      return Object.values(dailyData);
+    // Server-side aggregation is now handling most cases
+    // This method serves as a safety net to limit points for charting performance
+    const MAX_POINTS = 1000;
+
+    if (data.length <= MAX_POINTS) {
+      return data;
     }
 
-    // For "all" period with "1w" interval, group by week (take last price of each week)
-    if (this.currentPeriod === "all" && this.currentInterval === "1w") {
-      const weeklyData = {};
-      data.forEach((item) => {
-        const date = new Date(item.timestamp);
-        const year = date.getFullYear();
-        const week =
-          Math.floor(
-            (date - new Date(year, 0, 1)) / (7 * 24 * 60 * 60 * 1000),
-          ) + 1;
-        const key = `${year}-W${week}`;
-        weeklyData[key] = item; // Overwrite with last item of week
-      });
-      return Object.values(weeklyData);
-    }
-
-    // For "all", "1y", "3y" periods with "1M" interval, group by month (take last price of each month)
-    if (
-      (this.currentPeriod === "all" ||
-        this.currentPeriod === "1y" ||
-        this.currentPeriod === "3y") &&
-      this.currentInterval === "1M"
-    ) {
-      const monthlyData = {};
-      data.forEach((item) => {
-        const date = new Date(item.timestamp);
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1; // 1-12
-        const key = `${year}-${String(month).padStart(2, "0")}`;
-        monthlyData[key] = item; // Overwrite with last item of month
-      });
-      return Object.values(monthlyData);
-    }
-
-    // For other cases, sample to max 200 points
+    // Sample down to MAX_POINTS if server returned too many points
     const aggregated = [];
-    for (
-      let i = 0;
-      i < data.length;
-      i += Math.max(1, Math.floor(data.length / 200))
-    ) {
+    const step = Math.max(1, Math.floor(data.length / MAX_POINTS));
+
+    for (let i = 0; i < data.length; i += step) {
       aggregated.push(data[i]);
     }
 
-    return aggregated.length > 0 ? aggregated : data.slice(0, 100);
+    return aggregated.length > 0 ? aggregated : data.slice(0, MAX_POINTS);
   }
 
   displayPrice() {

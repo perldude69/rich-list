@@ -1,14 +1,13 @@
 import xrpl from "xrpl";
 
-// Allow self-signed certificates for local connection
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 class XRPLService {
   constructor() {
-    this.localClioServer = "ws://127.0.0.1:51233";
+    this.servers = ["wss://s2.ripple.com", "wss://xrplcluster.com"];
+    this.currentServerIndex = 0;
     this.client = null;
     this.isConnected = false;
     this.io = null;
+    this.lastRequestTime = 0;
   }
 
   setSocketIo(io) {
@@ -16,36 +15,74 @@ class XRPLService {
   }
 
   async connect() {
-    try {
-      console.log("🔗 Connecting to local Clio server...");
-      this.client = new xrpl.Client(this.localClioServer);
-      await this.client.connect();
-      this.isConnected = true;
-      console.log("✅ Connected to local Clio server");
-      return true;
-    } catch (error) {
-      console.error("❌ Failed to connect to Clio server:", error.message);
-      this.isConnected = false;
-      return false;
+    for (let i = 0; i < this.servers.length; i++) {
+      const server = this.servers[this.currentServerIndex];
+      try {
+        console.log(`🔗 Connecting to XRPL server: ${server}`);
+        this.client = new xrpl.Client(server);
+        await this.client.connect();
+        this.isConnected = true;
+        console.log(`✅ Connected to XRPL server: ${server}`);
+        return true;
+      } catch (error) {
+        console.error(`❌ Failed to connect to ${server}:`, error.message);
+        this.currentServerIndex =
+          (this.currentServerIndex + 1) % this.servers.length;
+      }
     }
+    console.error("❌ Failed to connect to any XRPL server");
+    this.isConnected = false;
+    return false;
   }
 
   async disconnect() {
     if (this.client) {
       await this.client.disconnect();
       this.isConnected = false;
-      console.log("Disconnected from Clio server");
+      console.log("Disconnected from XRPL server");
     }
   }
 
   async request(command) {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    const minInterval = 1000; // 1 second
+
+    if (timeSinceLastRequest < minInterval) {
+      const delay = minInterval - timeSinceLastRequest;
+      console.log(`⏳ Rate limiting: waiting ${delay}ms`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
     try {
       if (!this.isConnected) {
         await this.connect();
       }
-      return await this.client.request(command);
+      const result = await this.client.request(command);
+      this.lastRequestTime = Date.now();
+      return result;
     } catch (error) {
       console.error("Request failed:", error.message);
+      // Attempt failover on connection errors
+      if (
+        error.message.includes("connection") ||
+        error.message.includes("disconnected")
+      ) {
+        console.log("🔄 Attempting failover to next server...");
+        this.isConnected = false;
+        this.currentServerIndex =
+          (this.currentServerIndex + 1) % this.servers.length;
+        await this.connect();
+        // Retry the request once after failover
+        try {
+          const result = await this.client.request(command);
+          this.lastRequestTime = Date.now();
+          return result;
+        } catch (retryError) {
+          console.error("Retry after failover failed:", retryError.message);
+          throw retryError;
+        }
+      }
       throw error;
     }
   }
@@ -57,7 +94,8 @@ class XRPLService {
   getConnectionStatus() {
     return {
       isConnected: this.isConnected,
-      server: this.localClioServer,
+      currentServer: this.servers[this.currentServerIndex],
+      servers: this.servers,
     };
   }
 

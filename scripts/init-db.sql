@@ -65,6 +65,20 @@ CREATE INDEX IF NOT EXISTS idx_price_history_timestamp ON price_history(timestam
 CREATE INDEX IF NOT EXISTS idx_price_history_currency ON price_history(currency);
 CREATE INDEX IF NOT EXISTS idx_price_history_recent ON price_history(timestamp DESC, currency);
 
+-- Create xrp_price table
+CREATE TABLE IF NOT EXISTS xrp_price (
+    id SERIAL PRIMARY KEY,
+    price NUMERIC(20, 8) NOT NULL,
+    time TIMESTAMP NOT NULL,
+    ledger BIGINT,
+    sequence BIGINT,
+    UNIQUE(time)
+);
+
+-- Create indexes on xrp_price table
+CREATE INDEX IF NOT EXISTS idx_xrp_price_time ON xrp_price(time);
+CREATE INDEX IF NOT EXISTS idx_xrp_price_ledger ON xrp_price(ledger);
+
 -- Create ledger stats table
 CREATE TABLE IF NOT EXISTS ledger_stats (
     id SERIAL PRIMARY KEY,
@@ -84,6 +98,23 @@ CREATE INDEX IF NOT EXISTS idx_ledger_stats_ledger_index ON ledger_stats(ledger_
 CREATE INDEX IF NOT EXISTS idx_ledger_stats_closed_at ON ledger_stats(closed_at);
 CREATE INDEX IF NOT EXISTS idx_ledger_stats_updated_at ON ledger_stats(updated_at);
 CREATE INDEX IF NOT EXISTS idx_ledger_stats_recent ON ledger_stats(ledger_index DESC);
+
+-- Create stats table
+CREATE TABLE IF NOT EXISTS stats (
+    ind INTEGER PRIMARY KEY,
+    ledgerindex INTEGER,
+    ledgerdate VARCHAR(30),
+    totalxrp NUMERIC(20, 8),
+    walletxrp NUMERIC(20, 8),
+    escrowxrp NUMERIC(20, 8),
+    numaccounts INTEGER,
+    latest INTEGER
+);
+
+-- Create indexes on stats table
+CREATE INDEX IF NOT EXISTS idx_stats_ind ON stats(ind);
+CREATE INDEX IF NOT EXISTS idx_stats_ledgerindex ON stats(ledgerindex);
+CREATE INDEX IF NOT EXISTS idx_stats_latest ON stats(latest);
 
 -- Create transactions table
 CREATE TABLE IF NOT EXISTS transactions (

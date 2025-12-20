@@ -13,9 +13,12 @@ import { setupRoutes } from "./routes/api.js";
 import XRPLService from "./services/xrplService.mjs";
 import OracleSubscriber from "./services/oracleSubscriber.mjs";
 import PriceBackfiller from "./services/priceBackfiller.mjs";
+import GapTracker from "./services/gapTracker.mjs";
+import userAnalytics from "./services/userAnalytics.js";
+import { startAdminDashboard, updateAdminDashboard } from "./adminServer.js";
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: ".env.dev" });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -158,7 +161,16 @@ async function broadcastUpdates() {
 }
 
 // Start broadcasting updates every 10 seconds
-setInterval(broadcastUpdates, 10000);
+const broadcastInterval = setInterval(broadcastUpdates, 10000);
+
+// Monitor admin dashboard toggle every 30 seconds
+// const adminDashboardInterval = setInterval(async () => {
+//   try {
+//     await updateAdminDashboard();
+//   } catch (error) {
+//     console.error("Error updating admin dashboard:", error);
+//   }
+// }, 30000);
 
 // Socket.IO connection handler
 io.on("connection", (socket) => {
@@ -327,10 +339,22 @@ const startServer = async () => {
     // Initialize Price Backfiller (runs in background)
     console.log("🔧 Initializing Price Backfiller...");
     const priceBackfiller = new PriceBackfiller(xrplService);
-    // Start backfill asynchronously so it doesn't delay server startup
-    // priceBackfiller.start().catch((error) => {
-    //   console.error("Error in price backfiller:", error.message);
-    // });
+    // Make backfiller globally available for API routes
+    global.priceBackfiller = priceBackfiller;
+
+    // Initialize Gap Tracker
+    console.log("🔧 Initializing Gap Tracker...");
+    const gapTracker = new GapTracker();
+    // Make gap tracker globally available for API routes
+    global.gapTracker = gapTracker;
+
+    // Initialize User Analytics
+    console.log("🔧 Initializing User Analytics...");
+    userAnalytics.startAggregationJobs();
+
+    // Initialize Admin Dashboard
+    console.log("🔧 Skipping Admin Dashboard for testing...");
+    // await startAdminDashboard();
 
     httpServer.listen(PORT, () => {
       console.log(`
@@ -358,6 +382,7 @@ Type: npm start to restart
       xrplService,
       oracleSubscriber,
       priceBackfiller,
+      gapTracker,
     };
   } catch (error) {
     console.error("Failed to start server:", error);
@@ -368,6 +393,8 @@ Type: npm start to restart
 // Handle graceful shutdown
 process.on("SIGTERM", () => {
   console.log("SIGTERM received, shutting down gracefully...");
+  // Clear the broadcast interval to stop background operations
+  clearInterval(broadcastInterval);
   httpServer.close(() => {
     db.pool.end(() => {
       console.log("Server and database connections closed");

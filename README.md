@@ -1,10 +1,6 @@
-# Rich List v2 - Modern SPA
+# Rich-List SPA
 
 A modern Single Page Application for monitoring the XRP Ledger's richest wallets and network statistics.
-
-> **v2.0.0** (2025-12-17) - Complete rewrite with Node.js/Express + PostgreSQL
-> 
-> **[v1-legacy](https://github.com/perldude69/rich-list/tree/v1-legacy)** - Original PHP implementation (archived)
 
 ## Quick Start
 
