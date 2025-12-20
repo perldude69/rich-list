@@ -139,8 +139,18 @@ class PriceBackfiller {
       // Delete the gap since it's unfillable (out of server range)
       await db.query("DELETE FROM price_gaps WHERE id = $1", [gap.id]);
       console.log(`   🗑️ Deleted unfillable gap ${gap.id} (out of range)`);
+    } else if (!allOutOfRange) {
+      // Some chunks had data, so gap is likely invalid (prices exist)
+      await db.query("DELETE FROM price_gaps WHERE id = $1", [gap.id]);
+      console.log(
+        `   🗑️ Deleted gap ${gap.id} (prices already exist or gap invalid)`,
+      );
     } else {
-      console.log(`   ❌ Could not solve gap ${gap.id}`);
+      await db.query(
+        "UPDATE price_gaps SET status = 'retry_later' WHERE id = $1",
+        [gap.id],
+      );
+      console.log(`   ⏳ Marked gap ${gap.id} for retry later`);
     }
   }
 
