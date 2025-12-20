@@ -116,17 +116,19 @@ class PriceBackfiller {
     let allOutOfRange = true;
     let chunkIndex = 0;
     for (const chunk of chunks) {
-      console.log(`Querying single ledger ${chunk.start} (${++chunkIndex}/${chunks.length}) for gap ${gap.id}`);
+      console.log(
+        `Querying single ledger ${chunk.start} (${++chunkIndex}/${chunks.length}) for gap ${gap.id}`,
+      );
       const result = await this.backfillLedgerRange(chunk.start, chunk.end);
       if (result === "outOfRange") {
         // skip
       } else {
         allOutOfRange = false;
         totalInserted += result;
-        if (result > 0) console.log(`Price inserted at ledger ${chunk.start}, gap shrinking`);
+        if (result > 0)
+          console.log(`Price inserted at ledger ${chunk.start}, gap shrinking`);
       }
-      await new Promise(resolve => setTimeout(resolve, 100)); // Rate limit for single queries
-    }
+      await new Promise((resolve) => setTimeout(resolve, 100)); // Rate limit for single queries
     }
 
     if (totalInserted > 0) {
