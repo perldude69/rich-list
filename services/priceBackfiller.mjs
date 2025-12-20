@@ -92,16 +92,6 @@ class PriceBackfiller {
       return;
     }
 
-    // Skip gaps that are too large (more than ~10 minutes of missing prices)
-    const maxGapSize = 200; // ~18 ledgers per price, 200 covers ~11 prices
-    if (endLedger - startLedger > maxGapSize) {
-      console.log(
-        `   Gap ${gap.id} too large (${endLedger - startLedger} ledgers), deleting`,
-      );
-      await db.query("DELETE FROM price_gaps WHERE id = $1", [gap.id]);
-      return;
-    }
-
     // Skip gaps that require querying very old ledgers (before ~2024)
     const minLedger = 95000000; // Approximate ledger around 2024
     if (startLedger < minLedger) {
@@ -124,14 +114,19 @@ class PriceBackfiller {
 
     let totalInserted = 0;
     let allOutOfRange = true;
+    let chunkIndex = 0;
     for (const chunk of chunks) {
+      console.log(`Querying single ledger ${chunk.start} (${++chunkIndex}/${chunks.length}) for gap ${gap.id}`);
       const result = await this.backfillLedgerRange(chunk.start, chunk.end);
       if (result === "outOfRange") {
         // skip
       } else {
         allOutOfRange = false;
         totalInserted += result;
+        if (result > 0) console.log(`Price inserted at ledger ${chunk.start}, gap shrinking`);
       }
+      await new Promise(resolve => setTimeout(resolve, 100)); // Rate limit for single queries
+    }
     }
 
     if (totalInserted > 0) {
