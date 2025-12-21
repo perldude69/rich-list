@@ -1,11 +1,10 @@
 [Unit]
 Description=Rich-List Node.js Application
 After=network.target postgresql.service
-Wants=postgresql.service
 
 [Service]
 Type=simple
-User=jim
+User=username
 WorkingDirectory=/opt/rich-list
 EnvironmentFile=/opt/rich-list/.env
 ExecStart=/usr/bin/node server.js
